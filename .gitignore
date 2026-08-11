@@ -49,3 +49,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Landing page (Tailwind). O dist/style.css É versionado de propósito: a página
+# abre direto no navegador depois do clone, sem exigir npm install.
+node_modules/

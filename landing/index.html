@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Libria — Seu guia literário</title>
+    <meta
+      name="description"
+      content="Libria consulta o acervo público da Open Library: busca por título, autor ou ISBN, detalhes da obra e uma estante que é sua."
+    />
+    <link rel="stylesheet" href="./dist/style.css" />
+  </head>
+  <body class="font-body antialiased">
+    <!-- Etiqueta da gaveta: onde a ficha está arquivada. -->
+    <header class="border-b border-rule/60">
+      <div
+        class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3 font-mono text-[11px] tracking-[0.18em] text-muted uppercase"
+      >
+        <span class="flex items-center gap-3">
+          <span aria-hidden="true" class="text-stamp">▮▮▮</span>
+          Gaveta 025 · Catalogação
+        </span>
+        <button
+          id="theme-toggle"
+          type="button"
+          class="cursor-pointer border border-rule px-2 py-1 tracking-[0.18em] transition-colors hover:border-stamp hover:text-stamp"
+        >
+          Alternar luz
+        </button>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-6">
+      <!-- ================= FICHA PRINCIPAL ================= -->
+      <section class="pt-14 pb-20 md:pt-20">
+        <article
+          class="relative overflow-hidden border border-rule bg-card px-7 py-10 shadow-[0_1px_0_var(--color-rule)] sm:px-12 md:px-16 md:py-14"
+        >
+          <!-- Furo da vareta: ficha de catálogo tem um, no centro inferior. -->
+          <span
+            aria-hidden="true"
+            class="pointer-events-none absolute bottom-3 left-1/2 block size-3 -translate-x-1/2 rounded-full border border-rule bg-paper"
+          ></span>
+
+          <div class="grid gap-12 md:grid-cols-[1fr_auto] md:items-start md:gap-10">
+            <div>
+              <p class="font-mono text-[11px] tracking-[0.22em] text-muted uppercase">
+                823.912 &nbsp;/&nbsp; Ficha de consulta
+              </p>
+
+              <h1
+                class="mt-5 font-display text-[3.25rem] leading-[0.94] font-normal tracking-[-0.025em] sm:text-[4.5rem]"
+              >
+                Todo livro já foi
+                <span class="text-stamp italic">catalogado</span>
+                por alguém.
+              </h1>
+
+              <p class="mt-7 max-w-[54ch] text-lg leading-relaxed text-muted">
+                A Open Library mantém o registro aberto de milhões de obras, e ninguém consulta
+                isso por prazer — a interface é de um arquivo, não de uma estante. O Libria é a
+                camada de leitura que faltava: busca que responde enquanto você digita, a ficha
+                completa da obra, e uma estante que continua sua quando você fecha o app.
+              </p>
+
+              <div class="mt-10 flex flex-wrap items-center gap-4">
+                <a
+                  href="https://github.com/Otaviofertig/api-flutter"
+                  class="border border-ink bg-ink px-6 py-3 font-mono text-[12px] tracking-[0.16em] text-card uppercase transition-colors hover:bg-stamp hover:border-stamp"
+                >
+                  Ver o projeto
+                </a>
+                <a
+                  href="#ficha"
+                  class="border border-rule px-6 py-3 font-mono text-[12px] tracking-[0.16em] text-ink uppercase transition-colors hover:border-stamp hover:text-stamp"
+                >
+                  Ler a ficha
+                </a>
+              </div>
+            </div>
+
+            <!-- Carimbo: o acento da página, gasto num único lugar. -->
+            <div class="stamp-press justify-self-start text-stamp md:justify-self-end">
+              <svg viewBox="0 0 170 170" class="size-36 sm:size-44" role="img" aria-label="Carimbo: acervo aberto, consulta livre">
+                <defs>
+                  <!-- Só o arco superior: texto em arco embaixo sairia de cabeça
+                       para baixo, então a linha de baixo é reta. -->
+                  <path id="arco" d="M85,85 m-58,0 a58,58 0 0,1 116,0" />
+                </defs>
+                <circle cx="85" cy="85" r="76" fill="none" stroke="currentColor" stroke-width="3.5" opacity="0.9" />
+                <circle cx="85" cy="85" r="67" fill="none" stroke="currentColor" stroke-width="1.25" opacity="0.65" />
+                <text font-family="Courier New, monospace" font-size="11" letter-spacing="2.4" fill="currentColor" opacity="0.85">
+                  <textPath href="#arco" startOffset="50%" text-anchor="middle">ACERVO ABERTO</textPath>
+                </text>
+                <line x1="34" y1="74" x2="136" y2="74" stroke="currentColor" stroke-width="1" opacity="0.45" />
+                <text x="85" y="96" text-anchor="middle" font-family="Courier New, monospace" font-size="21" letter-spacing="2.5" fill="currentColor">LIBRIA</text>
+                <line x1="34" y1="106" x2="136" y2="106" stroke="currentColor" stroke-width="1" opacity="0.45" />
+                <text x="85" y="124" text-anchor="middle" font-family="Courier New, monospace" font-size="9" letter-spacing="2" fill="currentColor" opacity="0.8">CONSULTA LIVRE</text>
+                <text x="85" y="141" text-anchor="middle" font-family="Courier New, monospace" font-size="7.5" letter-spacing="1.6" fill="currentColor" opacity="0.6">OPEN LIBRARY</text>
+              </svg>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ================= A LOMBADA ================= -->
+      <section aria-labelledby="estante-titulo" class="pb-20">
+        <h2 id="estante-titulo" class="sr-only">A estante</h2>
+        <!-- Lombadas na prateleira: título na vertical e etiqueta com o número
+             de chamada no pé, como no acervo físico. -->
+        <div class="flex items-end gap-1 overflow-x-auto border-b-2 border-ink/70 pb-1">
+          <span class="flex h-44 w-14 shrink-0 flex-col items-center justify-between border border-rule bg-stamp/15 py-4">
+            <span class="font-display text-[13px] text-ink [writing-mode:vertical-rl]">Duna</span>
+            <span class="border border-rule bg-card px-1 py-1 font-mono text-[8px] tracking-[0.12em] text-muted">025.04</span>
+          </span>
+          <span class="flex h-52 w-16 shrink-0 flex-col items-center justify-between border border-rule bg-card py-4">
+            <span class="font-display text-[13px] text-ink [writing-mode:vertical-rl]">O Hobbit</span>
+            <span class="border border-rule bg-paper px-1 py-1 font-mono text-[8px] tracking-[0.12em] text-muted">028.1</span>
+          </span>
+          <span class="flex h-48 w-12 shrink-0 flex-col items-center justify-between border border-rule bg-stamp/28 py-4">
+            <span class="font-display text-[13px] text-ink [writing-mode:vertical-rl]">Grande Sertão</span>
+            <span class="border border-rule bg-card px-1 py-1 font-mono text-[8px] tracking-[0.12em] text-muted">025.21</span>
+          </span>
+          <span class="flex h-56 w-16 shrink-0 flex-col items-center justify-between border border-rule bg-card py-4">
+            <span class="font-display text-[13px] text-ink [writing-mode:vertical-rl]">Memórias Póstumas</span>
+            <span class="border border-rule bg-paper px-1 py-1 font-mono text-[8px] tracking-[0.12em] text-muted">005.8</span>
+          </span>
+          <span class="flex h-44 w-12 shrink-0 flex-col items-center justify-between border border-rule bg-stamp/12 py-4">
+            <span class="font-display text-[13px] text-ink [writing-mode:vertical-rl]">A Hora da Estrela</span>
+            <span class="border border-rule bg-card px-1 py-1 font-mono text-[8px] tracking-[0.12em] text-muted">006.7</span>
+          </span>
+          <span class="flex h-50 w-14 shrink-0 flex-col items-center justify-between border border-rule bg-card py-4">
+            <span class="font-display text-[13px] text-ink [writing-mode:vertical-rl]">Vidas Secas</span>
+            <span class="border border-rule bg-paper px-1 py-1 font-mono text-[8px] tracking-[0.12em] text-muted">070.5</span>
+          </span>
+          <span class="hidden h-48 w-14 shrink-0 flex-col items-center justify-between border border-rule bg-stamp/22 py-4 sm:flex">
+            <span class="font-display text-[13px] text-ink [writing-mode:vertical-rl]">Dom Casmurro</span>
+            <span class="border border-rule bg-card px-1 py-1 font-mono text-[8px] tracking-[0.12em] text-muted">808.3</span>
+          </span>
+        </div>
+      </section>
+
+      <!-- ================= O QUE A FICHA DIZ ================= -->
+      <section id="ficha" class="pb-20">
+        <p class="font-mono text-[11px] tracking-[0.22em] text-muted uppercase">
+          Conteúdo &nbsp;/&nbsp; quatro entradas
+        </p>
+        <h2 class="mt-4 max-w-[32ch] font-display text-4xl leading-[1.06] sm:text-5xl">
+          O que está registrado nesta ficha
+        </h2>
+
+        <div class="mt-12 grid gap-px border border-rule bg-rule sm:grid-cols-2">
+          <!-- 1 -->
+          <article class="group bg-card p-8 transition-colors hover:bg-paper sm:p-10">
+            <p class="font-mono text-[11px] tracking-[0.2em] text-stamp">025.04</p>
+            <h3 class="mt-4 font-display text-2xl">Busca que acompanha a digitação</h3>
+            <p class="mt-4 text-[15px] leading-relaxed text-muted">
+              O campo espera você terminar de pensar antes de sair perguntando à API. E se uma
+              resposta lenta chega depois de uma busca mais nova, ela é descartada em vez de
+              sobrescrever a tela — o resultado na frente é sempre o da palavra que você digitou
+              por último.
+            </p>
+          </article>
+          <!-- 2 -->
+          <article class="group bg-card p-8 transition-colors hover:bg-paper sm:p-10">
+            <p class="font-mono text-[11px] tracking-[0.2em] text-stamp">028.1</p>
+            <h3 class="mt-4 font-display text-2xl">A obra inteira, não só a capa</h3>
+            <p class="mt-4 text-[15px] leading-relaxed text-muted">
+              Sinopse, assuntos, ano da primeira edição e quantas edições existem. Quando a capa
+              não existe no acervo — e isso é comum — a ficha mostra as iniciais do título em vez
+              de um retângulo cinza quebrado.
+            </p>
+          </article>
+          <!-- 3 -->
+          <article class="group bg-card p-8 transition-colors hover:bg-paper sm:p-10">
+            <p class="font-mono text-[11px] tracking-[0.2em] text-stamp">025.21</p>
+            <h3 class="mt-4 font-display text-2xl">Uma estante que é sua</h3>
+            <p class="mt-4 text-[15px] leading-relaxed text-muted">
+              Guardar um livro é instantâneo e funciona sem rede. Cada conta tem a sua estante:
+              num aparelho compartilhado, o que você guardou não aparece para quem entrar depois
+              de você.
+            </p>
+          </article>
+          <!-- 4 -->
+          <article class="group bg-card p-8 transition-colors hover:bg-paper sm:p-10">
+            <p class="font-mono text-[11px] tracking-[0.2em] text-stamp">005.8</p>
+            <h3 class="mt-4 font-display text-2xl">Entrar é opcional</h3>
+            <p class="mt-4 text-[15px] leading-relaxed text-muted">
+              E-mail e senha ou conta Google, pelo Firebase. Mas o acervo da Open Library é
+              público: sem login o app abre direto na busca, porque exigir cadastro para consultar
+              um catálogo aberto seria um pedágio inventado.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================= NOTA TÉCNICA ================= -->
+      <section class="pb-20">
+        <div class="grid gap-10 border border-rule bg-card p-8 sm:p-12 md:grid-cols-[1fr_1.2fr]">
+          <div>
+            <p class="font-mono text-[11px] tracking-[0.22em] text-muted uppercase">
+              Nota do catalogador
+            </p>
+            <h2 class="mt-4 font-display text-3xl leading-[1.1] sm:text-4xl">
+              Construído para durar mais que a moda
+            </h2>
+          </div>
+
+          <dl class="grid gap-0 self-start font-mono text-[13px]">
+            <div class="flex items-baseline justify-between gap-4 border-b border-rule/60 py-2.5">
+              <dt class="text-muted">Plataforma</dt>
+              <dd>Flutter · Dart 3.12</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-4 border-b border-rule/60 py-2.5">
+              <dt class="text-muted">Arquitetura</dt>
+              <dd>Clean Architecture · MVC</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-4 border-b border-rule/60 py-2.5">
+              <dt class="text-muted">Erros</dt>
+              <dd>Result&lt;T&gt; tipado</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-4 border-b border-rule/60 py-2.5">
+              <dt class="text-muted">Estado de tela</dt>
+              <dd>UiState selado</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-4 border-b border-rule/60 py-2.5">
+              <dt class="text-muted">Acervo</dt>
+              <dd>Open Library</dd>
+            </div>
+            <div class="flex items-baseline justify-between gap-4 py-2.5">
+              <dt class="text-muted">Testes</dt>
+              <dd class="tabular-nums">31 passando</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- ================= BOLSO DA FICHA ================= -->
+      <section class="pb-24">
+        <div class="grid gap-8 md:grid-cols-[1.4fr_1fr] md:items-center">
+          <div>
+            <h2 class="font-display text-3xl leading-[1.1] sm:text-4xl">
+              O app já roda. A publicação é o que falta.
+            </h2>
+            <p class="mt-5 max-w-[52ch] text-[15px] leading-relaxed text-muted">
+              Busca, detalhes e estante funcionam hoje, em tema claro e escuro. O que ainda não
+              existe é um endereço público para você abrir — enquanto isso, o código está aberto
+              e sobe local com dois comandos.
+            </p>
+            <div class="mt-8 flex flex-wrap gap-4">
+              <a
+                href="https://github.com/Otaviofertig/api-flutter"
+                class="border border-ink bg-ink px-6 py-3 font-mono text-[12px] tracking-[0.16em] text-card uppercase transition-colors hover:border-stamp hover:bg-stamp"
+              >
+                Clonar o repositório
+              </a>
+              <a
+                href="https://openlibrary.org"
+                class="border border-rule px-6 py-3 font-mono text-[12px] tracking-[0.16em] uppercase transition-colors hover:border-stamp hover:text-stamp"
+              >
+                Conhecer a Open Library
+              </a>
+            </div>
+          </div>
+
+          <!-- Bolso com carimbo de situação: honesto e no tema. -->
+          <div class="relative border border-rule bg-card p-6">
+            <p class="font-mono text-[10px] tracking-[0.2em] text-muted uppercase">
+              Situação da obra
+            </p>
+            <div class="mt-4 font-mono text-[12px]">
+              <p class="flex justify-between border-b border-rule/60 py-2"><span class="text-muted">Busca</span><span class="text-stamp">pronta</span></p>
+              <p class="flex justify-between border-b border-rule/60 py-2"><span class="text-muted">Detalhes</span><span class="text-stamp">pronta</span></p>
+              <p class="flex justify-between border-b border-rule/60 py-2"><span class="text-muted">Estante</span><span class="text-stamp">pronta</span></p>
+              <p class="flex justify-between border-b border-rule/60 py-2"><span class="text-muted">Login</span><span>a configurar</span></p>
+              <p class="flex justify-between py-2"><span class="text-muted">Publicação</span><span>pendente</span></p>
+            </div>
+            <p
+              class="mt-6 inline-block -rotate-3 border-2 border-stamp px-3 py-1.5 font-mono text-[10px] tracking-[0.2em] text-stamp uppercase opacity-90"
+            >
+              Não devolvido
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="border-t border-rule/60">
+      <div
+        class="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-8 font-mono text-[11px] tracking-[0.14em] text-muted uppercase sm:flex-row sm:items-center sm:justify-between"
+      >
+        <span>Libria · Seu guia literário</span>
+        <span>Dados: Open Library · Consulta livre</span>
+      </div>
+    </footer>
+
+    <script>
+      // Alterna estampando data-theme no root — o CSS já trata os três estados.
+      (function () {
+        const toggle = document.getElementById("theme-toggle");
+        const root = document.documentElement;
+
+        toggle.addEventListener("click", function () {
+          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          const current = root.getAttribute("data-theme") || (prefersDark ? "dark" : "light");
+          root.setAttribute("data-theme", current === "dark" ? "light" : "dark");
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@source "../index.html";
+
+/* ---------------------------------------------------------------------------
+   Libria — sistema de tokens
+   Direção: ficha de catálogo de biblioteca. Papel manilha, linha pautada,
+   número de chamada datilografado e carimbo de data em tinta violeta.
+   --------------------------------------------------------------------------- */
+@theme {
+  /* Claro: a ficha sob a luz da sala de leitura. */
+  --color-paper: #efeae0;
+  --color-card: #f7f4ec;
+  --color-ink: #241f1b;
+  --color-stamp: #6b3fa0;
+  --color-rule: #c9bfa9;
+  --color-muted: #6e6455;
+
+  /* Face de livro para display e corpo; datilografia para dados da ficha. */
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino,
+    "Book Antiqua", "URW Palladio L", Georgia, serif;
+  --font-body: "Iowan Old Style", "Palatino Linotype", Palatino,
+    "Book Antiqua", Georgia, serif;
+  --font-mono: "Courier New", "Nimbus Mono PS", "Liberation Mono", monospace;
+
+  --text-display: 4.5rem;
+  --text-display--line-height: 0.94;
+  --text-display--letter-spacing: -0.025em;
+}
+
+/* Tema escuro: a mesma ficha na sala de leitura à noite.
+   Só os tokens mudam — nenhum componente conhece o tema.
+   Três estados: sem marcação (só prefers-color-scheme), data-theme="dark" e
+   data-theme="light" vencendo um SO escuro. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-paper: #16130f;
+    --color-card: #201c16;
+    --color-ink: #ede7da;
+    --color-stamp: #b79be8;
+    --color-rule: #3a332a;
+    --color-muted: #a0947f;
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-paper: #16130f;
+  --color-card: #201c16;
+  --color-ink: #ede7da;
+  --color-stamp: #b79be8;
+  --color-rule: #3a332a;
+  --color-muted: #a0947f;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-stamp);
+    outline-offset: 3px;
+  }
+}
+
+@utility stamp-press {
+  animation: stamp-press 620ms cubic-bezier(0.2, 1.4, 0.3, 1) both;
+}
+
+@keyframes stamp-press {
+  0% {
+    opacity: 0;
+    transform: rotate(-9deg) scale(1.5);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(-7deg) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-7deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp-press {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
