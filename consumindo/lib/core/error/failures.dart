@@ -21,6 +21,7 @@ sealed class Failure {
   /// Traduz uma exceção de infraestrutura no `Failure` equivalente.
   static Failure fromException(Object error) {
     return switch (error) {
+      AuthException e => AuthFailure(e.message, code: e.code),
       ServerException e => ServerFailure(e.message, statusCode: e.statusCode),
       NetworkException e => NetworkFailure(e.message),
       TimeoutException e => TimeoutFailure(e.message),
@@ -51,6 +52,14 @@ final class ParseFailure extends Failure {
 
 final class CacheFailure extends Failure {
   const CacheFailure([super.message = 'Falha ao acessar a sua estante local.']);
+}
+
+/// Falha de autenticação, já traduzida para o usuário.
+final class AuthFailure extends Failure {
+  const AuthFailure(super.message, {this.code});
+
+  /// Código original do provedor (ex.: `wrong-password`), para log.
+  final String? code;
 }
 
 /// Entrada do usuário rejeitada por uma regra de domínio.

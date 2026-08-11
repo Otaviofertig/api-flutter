@@ -35,3 +35,11 @@ final class ParseException extends AppException {
 final class CacheException extends AppException {
   const CacheException([super.message = 'Falha ao acessar os dados locais.']);
 }
+
+/// Falha de autenticação. [code] guarda o código original do provedor
+/// (ex.: `wrong-password`), útil para log e telemetria.
+final class AuthException extends AppException {
+  const AuthException(super.message, {this.code});
+
+  final String? code;
+}
