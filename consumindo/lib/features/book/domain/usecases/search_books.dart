@@ -20,7 +20,8 @@ final class SearchBooksParams {
 ///
 /// A regra "termo mínimo" mora aqui, não na UI: qualquer tela que use este
 /// caso de uso herda a mesma validação.
-final class SearchBooks implements UseCase<List<Book>, SearchBooksParams> {
+// Não é `final`: casos de uso precisam ser implementáveis por dublês de teste.
+class SearchBooks implements UseCase<List<Book>, SearchBooksParams> {
   const SearchBooks(this._repository);
 
   final IBookRepository _repository;

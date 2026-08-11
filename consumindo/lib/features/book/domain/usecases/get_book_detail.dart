@@ -14,7 +14,7 @@ final class GetBookDetailParams {
 }
 
 /// Carrega os detalhes de uma obra da Open Library.
-final class GetBookDetail implements UseCase<BookDetail, GetBookDetailParams> {
+class GetBookDetail implements UseCase<BookDetail, GetBookDetailParams> {
   const GetBookDetail(this._repository);
 
   final IBookRepository _repository;
