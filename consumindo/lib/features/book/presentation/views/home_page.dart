@@ -11,6 +11,7 @@ import '../widgets/book_grid.dart';
 import '../widgets/search_field.dart';
 import '../widgets/state_view.dart';
 import 'book_detail_page.dart';
+import 'favorites_page.dart';
 
 /// Tela principal: busca de livros na Open Library.
 class HomePage extends StatefulWidget {
@@ -53,6 +54,10 @@ class _HomePageState extends State<HomePage> {
     await Navigator.of(context).push(BookDetailPage.route(book));
   }
 
+  Future<void> _openFavorites() async {
+    await Navigator.of(context).push(FavoritesPage.route());
+  }
+
   @override
   Widget build(BuildContext context) {
     final double padding = Responsive.horizontalPadding(MediaQuery.sizeOf(context).width);
@@ -70,6 +75,14 @@ class _HomePageState extends State<HomePage> {
               titleSpacing: padding,
               title: const _Brand(),
               toolbarHeight: 64,
+              actions: <Widget>[
+                IconButton(
+                  icon: const Icon(Icons.bookmarks_outlined),
+                  tooltip: 'Minha Estante',
+                  onPressed: _openFavorites,
+                ),
+                SizedBox(width: padding - AppSpacing.sm),
+              ],
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(72),
                 child: Padding(
