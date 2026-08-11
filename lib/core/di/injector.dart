@@ -6,6 +6,7 @@ import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/datasources/disabled_auth_datasource.dart';
 import '../../features/auth/data/datasources/firebase_auth_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/data/session/auth_session_scope.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/send_password_reset.dart';
 import '../../features/auth/domain/usecases/sign_in_with_email.dart';
@@ -29,6 +30,7 @@ import '../../features/book/domain/usecases/toggle_favorite.dart';
 import '../config/app_config.dart';
 import '../network/http_client.dart';
 import '../network/http_client_impl.dart';
+import '../session/session_scope.dart';
 
 /// Service locator da aplicação.
 final GetIt sl = GetIt.instance;
@@ -52,8 +54,9 @@ Future<void> setupInjector(AppConfig config, {bool isAuthEnabled = false}) async
   sl.registerLazySingleton<IBookRemoteDataSource>(
     () => BookRemoteDataSourceImpl(sl<IHttpClient>()),
   );
+  // A estante é resolvida por conta: o escopo vem de `_registerAuth`.
   sl.registerLazySingleton<IBookLocalDataSource>(
-    () => BookLocalDataSourceImpl(sl<SharedPreferences>()),
+    () => BookLocalDataSourceImpl(sl<SharedPreferences>(), sl<ISessionScope>()),
   );
 
   sl.registerLazySingleton<IBookRepository>(
@@ -84,6 +87,14 @@ void _registerAuth({required bool isAuthEnabled}) {
 
   sl.registerLazySingleton<IAuthRepository>(
     () => AuthRepositoryImpl(sl<IAuthRemoteDataSource>()),
+  );
+
+  // Quem é o dono dos dados locais. Sem autenticação os dados pertencem ao
+  // aparelho; com sessão, a cada conta a sua estante.
+  sl.registerLazySingleton<ISessionScope>(
+    () => isAuthEnabled
+        ? AuthSessionScope(sl<IAuthRepository>())
+        : const AnonymousSessionScope(),
   );
 
   sl.registerLazySingleton<SignInWithEmail>(() => SignInWithEmail(sl<IAuthRepository>()));

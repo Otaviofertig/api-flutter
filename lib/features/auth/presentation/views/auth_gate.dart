@@ -8,7 +8,7 @@ import 'login_page.dart';
 ///
 /// Único ponto de decisão sobre "logado ou não": nenhuma tela precisa
 /// navegar manualmente depois de autenticar ou sair.
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key, required this.controller, required this.isAuthEnabled});
 
   final AuthController controller;
@@ -18,14 +18,48 @@ class AuthGate extends StatelessWidget {
   final bool isAuthEnabled;
 
   @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  String? _userId;
+
+  @override
+  void initState() {
+    super.initState();
+    _userId = widget.controller.user?.id;
+    widget.controller.addListener(_onSessionChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onSessionChanged);
+    super.dispose();
+  }
+
+  /// Descarta as telas abertas quando a sessão troca de dono.
+  ///
+  /// Detalhes e estante são empilhados no Navigator raiz, *acima* deste widget:
+  /// trocar o filho do gate não as remove. Sem isso, quem faz logout continua
+  /// vendo a estante da conta anterior por cima da tela de login.
+  void _onSessionChanged() {
+    final String? userId = widget.controller.user?.id;
+    if (userId == _userId) return;
+
+    _userId = userId;
+    // `maybeOf`: em teste de widget o gate pode ser montado sem Navigator.
+    Navigator.maybeOf(context)?.popUntil((Route<Object?> route) => route.isFirst);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (!isAuthEnabled) return const HomePage();
+    if (!widget.isAuthEnabled) return const HomePage();
 
     return ListenableBuilder(
-      listenable: controller,
+      listenable: widget.controller,
       builder: (BuildContext context, Widget? _) {
-        if (!controller.isReady) return const _SplashScreen();
-        return controller.isAuthenticated ? const HomePage() : const LoginPage();
+        if (!widget.controller.isReady) return const _SplashScreen();
+        return widget.controller.isAuthenticated ? const HomePage() : const LoginPage();
       },
     );
   }
