@@ -1,0 +1,47 @@
+name: libria
+description: "Libria - Seu Guia Literário. App Flutter que consome a API pública da Open Library."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Rede
+  http: ^1.2.2
+
+  # Injeção de dependência
+  get_it: ^8.0.3
+
+  # Configuração de ambiente (.env — fora do controle de versão)
+  flutter_dotenv: ^5.2.1
+
+  # Autenticação (Firebase)
+  firebase_core: ^4.1.1
+  firebase_auth: ^6.1.0
+
+  # Persistência local (Minha Estante)
+  shared_preferences: ^2.3.3
+
+  # UI
+  shimmer: ^3.0.0
+  cached_network_image: ^3.4.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    # O .env não é versionado: copie o .env.example antes do primeiro build.
+    - .env
