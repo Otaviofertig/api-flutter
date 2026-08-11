@@ -5,7 +5,7 @@ import '../repositories/book_repository.dart';
 
 /// Adiciona ou remove um livro da estante e devolve o **novo** estado
 /// (`true` = passou a ser favorito).
-final class ToggleFavorite implements UseCase<bool, Book> {
+class ToggleFavorite implements UseCase<bool, Book> {
   const ToggleFavorite(this._repository);
 
   final IFavoriteRepository _repository;

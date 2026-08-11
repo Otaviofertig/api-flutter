@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'core/config/app_config.dart';
 import 'core/di/injector.dart';
 import 'core/theme/app_theme.dart';
+import 'features/book/presentation/views/home_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,11 +27,7 @@ class LibriaApp extends StatelessWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
-      home: const Scaffold(
-        body: Center(
-          child: Text('Libria — camadas core/data/domain prontas.'),
-        ),
-      ),
+      home: const HomePage(),
     );
   }
 }

@@ -3,7 +3,7 @@ import '../../../../core/usecases/usecase.dart';
 import '../repositories/book_repository.dart';
 
 /// Verifica se uma obra já está na estante (usado na tela de detalhes).
-final class IsFavorite implements UseCase<bool, String> {
+class IsFavorite implements UseCase<bool, String> {
   const IsFavorite(this._repository);
 
   final IFavoriteRepository _repository;
