@@ -22,6 +22,10 @@ dependencies:
   # Configuração de ambiente (.env — fora do controle de versão)
   flutter_dotenv: ^5.2.1
 
+  # Autenticação (Firebase)
+  firebase_core: ^4.1.1
+  firebase_auth: ^6.1.0
+
   # Persistência local (Minha Estante)
   shared_preferences: ^2.3.3
 

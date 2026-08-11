@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'firebase_env.dart';
+
 /// Configuração da aplicação lida do arquivo `.env` (não versionado).
 ///
 /// ⚠️ Importante: em um app Flutter o `.env` é embarcado como asset e viaja
@@ -21,6 +23,7 @@ final class AppConfig {
     required this.searchPageSize,
     this.accessKey,
     this.secretKey,
+    this.firebase = const FirebaseEnv.empty(),
   });
 
   /// Monta a configuração a partir das variáveis já carregadas por [dotenv].
@@ -33,6 +36,14 @@ final class AppConfig {
       searchPageSize: _int('SEARCH_PAGE_SIZE', 20),
       accessKey: _optional('OPENLIBRARY_ACCESS_KEY'),
       secretKey: _optional('OPENLIBRARY_SECRET_KEY'),
+      firebase: FirebaseEnv(
+        apiKey: _optional('FIREBASE_API_KEY'),
+        appId: _optional('FIREBASE_APP_ID'),
+        messagingSenderId: _optional('FIREBASE_MESSAGING_SENDER_ID'),
+        projectId: _optional('FIREBASE_PROJECT_ID'),
+        authDomain: _optional('FIREBASE_AUTH_DOMAIN'),
+        storageBucket: _optional('FIREBASE_STORAGE_BUCKET'),
+      ),
     );
   }
 
@@ -49,6 +60,9 @@ final class AppConfig {
   /// de escrita/importação. Ausentes por padrão: o Libria é somente leitura.
   final String? accessKey;
   final String? secretKey;
+
+  /// Credenciais do Firebase; vazias quando o app roda sem autenticação.
+  final FirebaseEnv firebase;
 
   bool get hasCredentials =>
       (accessKey?.isNotEmpty ?? false) && (secretKey?.isNotEmpty ?? false);
@@ -93,7 +107,8 @@ final class AppConfig {
         requestTimeout = const Duration(seconds: 20),
         searchPageSize = 20,
         accessKey = null,
-        secretKey = null;
+        secretKey = null,
+        firebase = const FirebaseEnv.empty();
 
   // --- Leitura defensiva do .env ---------------------------------------------
 

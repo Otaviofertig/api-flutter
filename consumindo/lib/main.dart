@@ -3,21 +3,28 @@ import 'package:flutter/material.dart';
 import 'core/config/app_config.dart';
 import 'core/di/injector.dart';
 import 'core/theme/app_theme.dart';
-import 'features/book/presentation/views/home_page.dart';
+import 'features/auth/data/datasources/firebase_bootstrap.dart';
+import 'features/auth/presentation/controllers/auth_controller.dart';
+import 'features/auth/presentation/views/auth_gate.dart';
 
+/// Composition root: é o único lugar que conhece implementações concretas.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Ordem importa: a configuração do `.env` alimenta o cliente HTTP.
+  // Ordem importa: o `.env` alimenta o cliente HTTP e o Firebase.
   final AppConfig config = await AppConfig.load();
-  await setupInjector(config);
+  final bool isAuthEnabled = await FirebaseBootstrap.initialize(config.firebase);
 
-  runApp(const LibriaApp());
+  await setupInjector(config, isAuthEnabled: isAuthEnabled);
+
+  runApp(LibriaApp(isAuthEnabled: isAuthEnabled));
 }
 
-/// Raiz do Libria. Não conhece regra de negócio: só tema, rotas e DI.
+/// Raiz do Libria. Não conhece regra de negócio: só tema, sessão e DI.
 class LibriaApp extends StatelessWidget {
-  const LibriaApp({super.key});
+  const LibriaApp({super.key, required this.isAuthEnabled});
+
+  final bool isAuthEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +34,10 @@ class LibriaApp extends StatelessWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
-      home: const HomePage(),
+      home: AuthGate(
+        controller: sl<AuthController>(),
+        isAuthEnabled: isAuthEnabled,
+      ),
     );
   }
 }

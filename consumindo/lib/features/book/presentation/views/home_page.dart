@@ -4,6 +4,8 @@ import '../../../../core/di/injector.dart';
 import '../../../../core/state/ui_state.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../auth/presentation/widgets/user_menu.dart';
 import '../../domain/entities/book.dart';
 import '../../domain/usecases/search_books.dart';
 import '../controllers/home_controller.dart';
@@ -81,6 +83,8 @@ class _HomePageState extends State<HomePage> {
                   tooltip: 'Minha Estante',
                   onPressed: _openFavorites,
                 ),
+                // Some sozinho quando não há sessão ativa.
+                UserMenu(controller: sl<AuthController>()),
                 SizedBox(width: padding - AppSpacing.sm),
               ],
               bottom: PreferredSize(
