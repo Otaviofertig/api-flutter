@@ -1,24 +1,29 @@
+import '../config/app_config.dart';
+
 /// Endpoints e helpers da Open Library API.
+///
+/// As URLs vêm de [AppConfig] (arquivo `.env`), com fallback para os valores
+/// públicos oficiais — trocar de ambiente não exige recompilar código.
 ///
 /// Documentação: https://openlibrary.org/developers/api
 abstract final class ApiConstants {
-  static const String baseUrl = 'https://openlibrary.org';
-  static const String coversBaseUrl = 'https://covers.openlibrary.org';
+  static String get baseUrl => AppConfig.instance.apiBaseUrl;
+  static String get coversBaseUrl => AppConfig.instance.coversBaseUrl;
 
   /// Campos solicitados na busca — reduz drasticamente o payload da resposta.
   static const String searchFields =
       'key,title,author_name,first_publish_year,cover_i,edition_count,ia';
 
-  static const int searchPageSize = 20;
-  static const Duration requestTimeout = Duration(seconds: 20);
+  static int get searchPageSize => AppConfig.instance.searchPageSize;
+  static Duration get requestTimeout => AppConfig.instance.requestTimeout;
 
   /// `GET /search.json?q=...`
-  static Uri search({required String query, int page = 1, int limit = searchPageSize}) {
+  static Uri search({required String query, int page = 1, int? limit}) {
     return Uri.parse('$baseUrl/search.json').replace(
       queryParameters: <String, String>{
         'q': query,
         'fields': searchFields,
-        'limit': '$limit',
+        'limit': '${limit ?? searchPageSize}',
         'page': '$page',
       },
     );

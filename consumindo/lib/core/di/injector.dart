@@ -13,6 +13,7 @@ import '../../features/book/domain/usecases/get_favorites.dart';
 import '../../features/book/domain/usecases/is_favorite.dart';
 import '../../features/book/domain/usecases/search_books.dart';
 import '../../features/book/domain/usecases/toggle_favorite.dart';
+import '../config/app_config.dart';
 import '../network/http_client.dart';
 import '../network/http_client_impl.dart';
 
@@ -23,12 +24,14 @@ final GetIt sl = GetIt.instance;
 ///
 /// Todo registro é feito **pela interface**, nunca pela implementação: as
 /// camadas de cima dependem de abstrações (DIP).
-Future<void> setupInjector() async {
+Future<void> setupInjector(AppConfig config) async {
   // --- Externo ---------------------------------------------------------------
+  sl.registerSingleton<AppConfig>(config);
+
   final SharedPreferences prefs = await SharedPreferences.getInstance();
   sl.registerSingleton<SharedPreferences>(prefs);
 
-  sl.registerLazySingleton<IHttpClient>(HttpClientImpl.new);
+  sl.registerLazySingleton<IHttpClient>(() => HttpClientImpl(config: sl<AppConfig>()));
 
   // --- Data ------------------------------------------------------------------
   sl.registerLazySingleton<IBookRemoteDataSource>(

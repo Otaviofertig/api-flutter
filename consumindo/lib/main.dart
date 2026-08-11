@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 
+import 'core/config/app_config.dart';
 import 'core/di/injector.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await setupInjector();
+
+  // Ordem importa: a configuração do `.env` alimenta o cliente HTTP.
+  final AppConfig config = await AppConfig.load();
+  await setupInjector(config);
+
   runApp(const LibriaApp());
 }
 

@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../constants/api_constants.dart';
+import '../config/app_config.dart';
 import '../error/exceptions.dart';
 import 'http_client.dart';
 
@@ -13,25 +13,22 @@ import 'http_client.dart';
 /// [AppException] — os datasources ficam livres desse ruído. Não importa
 /// `dart:io`, portanto compila também para web.
 final class HttpClientImpl implements IHttpClient {
-  HttpClientImpl({http.Client? client, Duration? timeout})
+  HttpClientImpl({http.Client? client, AppConfig? config})
       : _client = client ?? http.Client(),
-        _timeout = timeout ?? ApiConstants.requestTimeout;
+        _config = config ?? AppConfig.instance;
 
   final http.Client _client;
-  final Duration _timeout;
 
-  static const Map<String, String> _defaultHeaders = <String, String>{
-    'Accept': 'application/json',
-    // A Open Library pede identificação do consumidor nas boas práticas de uso.
-    'User-Agent': 'Libria/1.0 (Flutter; contato@libria.app)',
-  };
+  /// Fornece timeout e cabeçalhos (User-Agent e credenciais opcionais do
+  /// `.env`), sem que este cliente precise saber o que é a Open Library.
+  final AppConfig _config;
 
   @override
   Future<dynamic> getJson(Uri url, {Map<String, String>? headers}) async {
     try {
       final http.Response response = await _client
-          .get(url, headers: <String, String>{..._defaultHeaders, ...?headers})
-          .timeout(_timeout);
+          .get(url, headers: <String, String>{..._config.headers, ...?headers})
+          .timeout(_config.requestTimeout);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return _decode(response);
