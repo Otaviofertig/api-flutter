@@ -35,6 +35,26 @@ final class BookRemoteDataSourceImpl implements IBookRemoteDataSource {
   }
 
   @override
+  Future<List<BookModel>> getTrending({String period = 'daily', int? limit}) async {
+    final dynamic json = await _client.getJson(
+      ApiConstants.trending(period: period, limit: limit),
+    );
+
+    if (json is! Map<String, dynamic>) throw const ParseException();
+
+    // A lista vem em `works`, não em `docs` — o resto do formato é idêntico
+    // ao da busca, então o mesmo parser serve.
+    final Object? works = json['works'];
+    if (works is! List) throw const ParseException();
+
+    return works
+        .whereType<Map<String, dynamic>>()
+        .map(BookModel.fromSearchJson)
+        .where((BookModel book) => book.id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  @override
   Future<BookDetailModel> getBookDetail({required String workId, Book? fallback}) async {
     final dynamic json = await _client.getJson(ApiConstants.work(workId));
 

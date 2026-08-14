@@ -29,6 +29,32 @@ abstract final class ApiConstants {
     );
   }
 
+  /// Janelas aceitas por `/trending/{period}.json`.
+  static const Set<String> trendingPeriods = <String>{
+    'now',
+    'daily',
+    'weekly',
+    'monthly',
+    'yearly',
+    'forever',
+  };
+
+  /// `GET /trending/{period}.json` — obras em alta, mesma forma dos `docs` da
+  /// busca.
+  ///
+  /// O `fields` vale aqui também, e não é detalhe: sem ele a resposta de 20
+  /// obras passa de 58 KB; com ele, fica em 3 KB.
+  static Uri trending({String period = 'daily', int? limit}) {
+    final String window = trendingPeriods.contains(period) ? period : 'daily';
+
+    return Uri.parse('$baseUrl/trending/$window.json').replace(
+      queryParameters: <String, String>{
+        'fields': searchFields,
+        'limit': '${limit ?? searchPageSize}',
+      },
+    );
+  }
+
   /// `GET /works/{id}.json` — [workId] aceita tanto `OL45804W` quanto `/works/OL45804W`.
   static Uri work(String workId) {
     final String id = normalizeWorkId(workId);

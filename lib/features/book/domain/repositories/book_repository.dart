@@ -10,6 +10,9 @@ abstract interface class IBookRepository {
   /// Busca por título, autor ou ISBN. [page] começa em 1.
   Future<Result<List<Book>>> searchBooks({required String query, int page = 1});
 
+  /// Obras em alta, usadas como vitrine quando não há busca digitada.
+  Future<Result<List<Book>>> getTrending({String period, int? limit});
+
   /// Detalhes de uma obra. [fallback] preenche campos que o endpoint de
   /// detalhe não retorna (autores e ano vêm da busca).
   Future<Result<BookDetail>> getBookDetail({required String workId, Book? fallback});

@@ -25,6 +25,7 @@ import '../../features/book/domain/repositories/book_repository.dart';
 import '../../features/book/domain/usecases/get_book_detail.dart';
 import '../../features/book/domain/usecases/get_favorites.dart';
 import '../../features/book/domain/usecases/is_favorite.dart';
+import '../../features/book/domain/usecases/get_trending_books.dart';
 import '../../features/book/domain/usecases/search_books.dart';
 import '../../features/book/domain/usecases/toggle_favorite.dart';
 import '../config/app_config.dart';
@@ -81,6 +82,9 @@ Future<void> setupInjector(AppConfig config, {bool isAuthEnabled = false}) async
   // --- Domain (casos de uso) -------------------------------------------------
   sl.registerLazySingleton<SearchBooks>(() => SearchBooks(sl<IBookRepository>()));
   sl.registerLazySingleton<GetBookDetail>(() => GetBookDetail(sl<IBookRepository>()));
+  sl.registerLazySingleton<GetTrendingBooks>(
+    () => GetTrendingBooks(sl<IBookRepository>()),
+  );
   sl.registerLazySingleton<GetFavorites>(() => GetFavorites(sl<IFavoriteRepository>()));
   sl.registerLazySingleton<ToggleFavorite>(() => ToggleFavorite(sl<IFavoriteRepository>()));
   sl.registerLazySingleton<IsFavorite>(() => IsFavorite(sl<IFavoriteRepository>()));

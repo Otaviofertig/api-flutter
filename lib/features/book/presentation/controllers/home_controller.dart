@@ -5,17 +5,32 @@ import '../../../../core/error/result.dart';
 import '../../../../core/state/ui_state.dart';
 import '../../../../core/utils/debouncer.dart';
 import '../../domain/entities/book.dart';
+import '../../domain/usecases/get_trending_books.dart';
 import '../../domain/usecases/search_books.dart';
 
-/// Controller da Home: busca com debounce, paginação e estados de tela.
+/// Controller da Home: destaques, busca com debounce, paginação e estados.
 ///
-/// Não conhece Flutter Material nem HTTP — só o caso de uso [SearchBooks].
+/// Não conhece Flutter Material nem HTTP — só os casos de uso.
 class HomeController extends ChangeNotifier {
-  HomeController(this._searchBooks, {Debouncer? debouncer, int? pageSize})
-      : _debouncer = debouncer ?? Debouncer(),
+  HomeController(
+    this._searchBooks, {
+    GetTrendingBooks? trendingBooks,
+    Debouncer? debouncer,
+    int? pageSize,
+  })  :
+        // O lint pede `this._trendingBooks`, que o Dart recusa: parâmetro
+        // nomeado não pode começar com underscore.
+        // ignore: prefer_initializing_formals
+        _trendingBooks = trendingBooks,
+        _debouncer = debouncer ?? Debouncer(),
         _pageSize = pageSize ?? AppConfig.instance.searchPageSize;
 
   final SearchBooks _searchBooks;
+
+  /// Opcional: sem ele a Home volta a ser a tela vazia de antes, o que mantém
+  /// os testes de busca existentes livres deste caso de uso.
+  final GetTrendingBooks? _trendingBooks;
+
   final Debouncer _debouncer;
 
   /// Espelha o `limit` enviado à API: uma página cheia sugere que há mais.
@@ -23,6 +38,15 @@ class HomeController extends ChangeNotifier {
 
   UiState<List<Book>> _state = const UiState<List<Book>>.idle();
   UiState<List<Book>> get state => _state;
+
+  /// Vitrine mostrada enquanto não há busca. Estado separado do da busca de
+  /// propósito: limpar o campo volta aos destaques na hora, sem ir à rede de
+  /// novo, e uma falha na vitrine não contamina o resultado da busca.
+  UiState<List<Book>> _highlights = const UiState<List<Book>>.idle();
+  UiState<List<Book>> get highlights => _highlights;
+
+  /// `true` quando a Home tem vitrine para mostrar em vez do convite vazio.
+  bool get hasHighlights => _trendingBooks != null;
 
   String _query = '';
   String get query => _query;
@@ -39,6 +63,29 @@ class HomeController extends ChangeNotifier {
   int _requestId = 0;
 
   bool _disposed = false;
+
+  /// Carrega a vitrine de destaques. Chamado uma vez, ao abrir a Home.
+  ///
+  /// Falha aqui é discreta: os destaques somem e o convite de busca original
+  /// volta. Quem abriu o app para procurar um livro específico não deveria
+  /// levar um erro de rede por causa de uma vitrine que nem pediu.
+  Future<void> loadHighlights() async {
+    final GetTrendingBooks? trending = _trendingBooks;
+    if (trending == null || _highlights.isLoading) return;
+
+    _highlights = const UiState<List<Book>>.loading();
+    _notify();
+
+    final Result<List<Book>> result = await trending(const TrendingParams());
+
+    _highlights = result.fold(
+      UiState<List<Book>>.error,
+      (List<Book> books) => books.isEmpty
+          ? const UiState<List<Book>>.empty('Nada em alta agora.')
+          : UiState<List<Book>>.success(books),
+    );
+    _notify();
+  }
 
   /// Chamado a cada tecla digitada: agenda a busca e cancela a anterior.
   void onQueryChanged(String value) {

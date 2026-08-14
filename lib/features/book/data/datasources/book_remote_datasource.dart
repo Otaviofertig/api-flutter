@@ -6,5 +6,8 @@ import '../models/book_model.dart';
 abstract interface class IBookRemoteDataSource {
   Future<List<BookModel>> searchBooks({required String query, int page});
 
+  /// Obras em alta na Open Library, para a Home sem busca digitada.
+  Future<List<BookModel>> getTrending({String period, int? limit});
+
   Future<BookDetailModel> getBookDetail({required String workId, Book? fallback});
 }
