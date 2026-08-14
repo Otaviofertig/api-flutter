@@ -124,6 +124,12 @@ final class FirebaseAuthDataSource implements IAuthRemoteDataSource {
       'weak-password' => 'Escolha uma senha mais forte.',
       'operation-not-allowed' =>
         'Este método de login não está habilitado no projeto Firebase.',
+      // O SDK devolve a mensagem "Error", crua e inútil, quando o produto
+      // Authentication nunca foi ativado no console — registrar o app e
+      // preencher as chaves não ativa. Vale dizer onde resolver.
+      'configuration-not-found' =>
+        'O Authentication não está ativado neste projeto Firebase. '
+            'Ative em Authentication > Começar, no console.',
       'too-many-requests' => 'Muitas tentativas. Aguarde alguns minutos.',
       'network-request-failed' => 'Sem conexão com a internet.',
       'popup-closed-by-user' ||
@@ -132,7 +138,10 @@ final class FirebaseAuthDataSource implements IAuthRemoteDataSource {
         'Login cancelado.',
       'account-exists-with-different-credential' =>
         'Este e-mail já está vinculado a outro método de login.',
-      _ => error.message ?? 'Não foi possível concluir a operação.',
+      // Fallback: a mensagem crua do SDK vem em inglês e às vezes é só
+      // "Error". Sem o código junto, um erro não mapeado vira um banner que
+      // não ajuda o usuário nem quem for depurar.
+      _ => '${error.message ?? 'Não foi possível concluir a operação.'} (${error.code})',
     };
   }
 }
