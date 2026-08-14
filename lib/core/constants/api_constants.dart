@@ -12,7 +12,7 @@ abstract final class ApiConstants {
 
   /// Campos solicitados na busca — reduz drasticamente o payload da resposta.
   static const String searchFields =
-      'key,title,author_name,first_publish_year,cover_i,edition_count,ia';
+      'key,title,author_name,author_key,first_publish_year,cover_i,edition_count,ia';
 
   static int get searchPageSize => AppConfig.instance.searchPageSize;
   static Duration get requestTimeout => AppConfig.instance.requestTimeout;
@@ -62,10 +62,41 @@ abstract final class ApiConstants {
   }
 
   /// Remove o prefixo `/works/` retornado pelo campo `key` da busca.
-  static String normalizeWorkId(String rawKey) {
+  static String normalizeWorkId(String rawKey) => _stripPrefix(rawKey, 'works');
+
+  /// `GET /authors/{id}.json` — ficha do autor.
+  static Uri author(String authorId) {
+    return Uri.parse('$baseUrl/authors/${normalizeAuthorId(authorId)}.json');
+  }
+
+  /// `GET /authors/{id}/works.json` — obras do autor, paginadas por `offset`.
+  ///
+  /// Este endpoint não aceita `fields`: a resposta vem com o registro completo
+  /// de cada obra, e o recorte fica no parser.
+  static Uri authorWorks(String authorId, {int offset = 0, int? limit}) {
+    return Uri.parse('$baseUrl/authors/${normalizeAuthorId(authorId)}/works.json')
+        .replace(
+      queryParameters: <String, String>{
+        'limit': '${limit ?? searchPageSize}',
+        'offset': '$offset',
+      },
+    );
+  }
+
+  /// Remove o prefixo `/authors/` de uma chave como `/authors/OL26320A`.
+  static String normalizeAuthorId(String rawKey) => _stripPrefix(rawKey, 'authors');
+
+  /// Retrato do autor. Note o `/a/`: capa de livro usa `/b/`.
+  static String? authorPhotoById(int? photoId, {String size = 'M'}) {
+    // A Open Library devolve `-1` para "sem foto" em vez de omitir o campo.
+    if (photoId == null || photoId <= 0) return null;
+    return '$coversBaseUrl/a/id/$photoId-$size.jpg';
+  }
+
+  static String _stripPrefix(String rawKey, String segment) {
     final String trimmed = rawKey.trim();
-    if (trimmed.startsWith('/works/')) return trimmed.substring('/works/'.length);
-    if (trimmed.startsWith('works/')) return trimmed.substring('works/'.length);
+    if (trimmed.startsWith('/$segment/')) return trimmed.substring(segment.length + 2);
+    if (trimmed.startsWith('$segment/')) return trimmed.substring(segment.length + 1);
     return trimmed;
   }
 

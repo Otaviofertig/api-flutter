@@ -22,10 +22,17 @@ final class BookDetailModel extends BookDetail {
     );
     final List<int> covers = _intList(json['covers']).where((int c) => c > 0).toList(growable: false);
 
+    // O work traz as referências de autor; os nomes só vêm da busca. Quando
+    // o fallback já tem ids, eles ganham: estão pareados com os nomes.
+    final List<String> authorIds = fallback?.authorIds.isNotEmpty ?? false
+        ? fallback!.authorIds
+        : _authorIds(json['authors']);
+
     final Book book = Book(
       id: id,
       title: _string(json['title']) ?? fallback?.title ?? 'Título não informado',
       authors: fallback?.authors ?? const <String>[],
+      authorIds: authorIds,
       firstPublishYear: _year(json['first_publish_date']) ?? fallback?.firstPublishYear,
       coverId: covers.isNotEmpty ? covers.first : fallback?.coverId,
       editionCount: fallback?.editionCount ?? 0,
@@ -56,6 +63,23 @@ final class BookDetailModel extends BookDetail {
     if (raw == null) return null;
     final RegExpMatch? match = RegExp(r'\b(\d{4})\b').firstMatch(raw);
     return match == null ? null : int.tryParse(match.group(1)!);
+  }
+
+  /// `authors` do work vem como `[{author: {key: "/authors/OL26320A"}}]`.
+  static List<String> _authorIds(Object? value) {
+    if (value is! List) return const <String>[];
+
+    return value
+        .map((Object? entry) {
+          if (entry is! Map) return null;
+          final Object? author = entry['author'];
+          if (author is! Map) return null;
+          return _string(author['key']);
+        })
+        .whereType<String>()
+        .map(ApiConstants.normalizeAuthorId)
+        .where((String id) => id.isNotEmpty)
+        .toList(growable: false);
   }
 
   static String? _string(Object? value) {

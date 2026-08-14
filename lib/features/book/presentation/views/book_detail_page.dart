@@ -13,6 +13,7 @@ import '../controllers/book_detail_controller.dart';
 import '../widgets/book_cover.dart';
 import '../widgets/shimmer_box.dart';
 import '../widgets/state_view.dart';
+import 'author_page.dart';
 
 /// Tela de detalhes de uma obra.
 ///
@@ -279,10 +280,7 @@ class _InfoPanel extends StatelessWidget {
       children: <Widget>[
         Text(detail.title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.sm),
-        Text(
-          detail.book.authorsLabel,
-          style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary),
-        ),
+        _AuthorLinks(book: detail.book),
         const SizedBox(height: AppSpacing.lg),
         Wrap(
           spacing: AppSpacing.sm,
@@ -330,6 +328,53 @@ class _InfoPanel extends StatelessWidget {
                   .toList(growable: false),
             ),
           ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Autores da obra, com link para a ficha de quem tem id na Open Library.
+///
+/// Nem todo autor tem registro próprio: quando falta o id, o nome continua
+/// aparecendo como texto. Um link morto seria pior que nenhum link.
+class _AuthorLinks extends StatelessWidget {
+  const _AuthorLinks({required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final TextStyle? style =
+        theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary);
+
+    if (book.authors.isEmpty) {
+      return Text(book.authorsLabel, style: style);
+    }
+
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: <Widget>[
+        for (final (int index, ({String name, String? id}) author)
+            in book.authorEntries.indexed) ...<Widget>[
+          if (index > 0) Text(', ', style: style),
+          if (author.id == null)
+            Text(author.name, style: style)
+          else
+            InkWell(
+              onTap: () => Navigator.of(context).push(
+                AuthorPage.route(authorId: author.id!, authorName: author.name),
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text(
+                  author.name,
+                  style: style?.copyWith(decoration: TextDecoration.underline),
+                ),
+              ),
+            ),
         ],
       ],
     );

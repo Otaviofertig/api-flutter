@@ -8,6 +8,7 @@ class Book {
     required this.id,
     required this.title,
     this.authors = const <String>[],
+    this.authorIds = const <String>[],
     this.firstPublishYear,
     this.coverId,
     this.editionCount = 0,
@@ -17,6 +18,11 @@ class Book {
   final String id;
   final String title;
   final List<String> authors;
+
+  /// Ids dos autores (ex.: `OL26320A`), paralelos a [authors] quando a API
+  /// devolve os dois. É o que permite abrir a ficha do autor.
+  final List<String> authorIds;
+
   final int? firstPublishYear;
   final int? coverId;
   final int editionCount;
@@ -25,6 +31,18 @@ class Book {
 
   /// Autores formatados para exibição, com fallback explícito.
   String get authorsLabel => authors.isEmpty ? 'Autor desconhecido' : authors.join(', ');
+
+  /// Autores pareados com seus ids, para a UI decidir quais viram link.
+  ///
+  /// As duas listas chegam paralelas da busca, mas nada garante o mesmo
+  /// tamanho: obra com autor sem registro próprio devolve nome sem chave.
+  /// Índice sem id correspondente vira `null` em vez de desalinhar o par.
+  List<({String name, String? id})> get authorEntries {
+    return <({String name, String? id})>[
+      for (int i = 0; i < authors.length; i++)
+        (name: authors[i], id: i < authorIds.length ? authorIds[i] : null),
+    ];
+  }
 
   String get yearLabel => firstPublishYear?.toString() ?? '—';
 
