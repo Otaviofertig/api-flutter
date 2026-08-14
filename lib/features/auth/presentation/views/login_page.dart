@@ -9,6 +9,7 @@ import '../../domain/usecases/sign_in_with_email.dart';
 import '../../domain/usecases/sign_in_with_google.dart';
 import '../../domain/usecases/sign_up_with_email.dart';
 import '../controllers/login_controller.dart';
+import '../widgets/animated_brand_mark.dart';
 
 /// Tela de login e cadastro.
 ///
@@ -128,7 +129,7 @@ class _LoginForm extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          const _Header(),
+          const AnimatedBrandMark(),
           const SizedBox(height: AppSpacing.xxl),
           Text(
             mode.title,
@@ -250,42 +251,6 @@ class _LoginForm extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return Column(
-      children: <Widget>[
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.local_library_rounded,
-            size: 36,
-            color: theme.colorScheme.onPrimaryContainer,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-          'Libria',
-          style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        Text(
-          'Seu guia literário',
-          style: theme.textTheme.labelLarge
-              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
-      ],
     );
   }
 }

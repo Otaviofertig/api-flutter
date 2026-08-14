@@ -10,8 +10,8 @@ um arquivo, não de uma estante. O Libria é a camada de leitura em cima disso.
 | --- | --- |
 | **Plataformas** | Web, Android, iOS, Windows |
 | **Arquitetura** | Clean Architecture + MVC |
-| **Testes** | 37, em 7 arquivos |
-| **Código** | 65 arquivos Dart em `lib/` |
+| **Testes** | 40, em 8 arquivos |
+| **Código** | 66 arquivos Dart em `lib/` |
 
 ---
 
@@ -253,6 +253,10 @@ lib/
   sobrescreve um resultado mais novo.
 - **Null Object para autenticação**: sem Firebase configurado, a DI resolve uma fonte
   desabilitada em vez de espalhar `if (temFirebase)` pelas telas.
+- **Marca animada com um controller só**: o livro que abre na tela de login é
+  `CustomPainter` (glifo do Material não abre), e as etapas saem de `Interval`s do
+  mesmo `AnimationController` — um relógio por elemento sairia de fase. Com "reduzir
+  movimento" ligado no sistema, a marca aparece pronta e nada fica animando.
 - **Estante por conta**: a chave do armazenamento local deriva do uid via
   `ISessionScope`, então num aparelho compartilhado a estante de quem sai não fica
   visível para quem entra. A estante criada antes do primeiro login é transferida
@@ -268,7 +272,7 @@ flutter test
 flutter analyze
 ```
 
-37 testes cobrindo os pontos onde o erro dói:
+40 testes cobrindo os pontos onde o erro dói:
 
 | Arquivo | O que garante |
 | --- | --- |
@@ -279,6 +283,7 @@ flutter analyze
 | `favorites_controller_test.dart` | rollback da remoção otimista |
 | `book_local_datasource_test.dart` | isolamento da estante entre contas |
 | `login_controller_test.dart` | validação de credenciais e mensagens de erro |
+| `animated_brand_mark_test.dart` | animação sem exceção, respeito a "reduzir movimento", dispose |
 
 ---
 
