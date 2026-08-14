@@ -10,8 +10,8 @@ um arquivo, não de uma estante. O Libria é a camada de leitura em cima disso.
 | --- | --- |
 | **Plataformas** | Web, Android, iOS, Windows |
 | **Arquitetura** | Clean Architecture + MVC |
-| **Testes** | 31, em 6 arquivos |
-| **Código** | 64 arquivos Dart em `lib/` |
+| **Testes** | 37, em 7 arquivos |
+| **Código** | 65 arquivos Dart em `lib/` |
 
 ---
 
@@ -104,16 +104,42 @@ provedor Google pede um e-mail de suporte do projeto.
 Em **Authentication → Settings → Authorized domains**, confirme que `localhost`
 está na lista — é o que libera o popup de login rodando local.
 
-### Uma plataforma por `.env`
+### Mais de uma plataforma no mesmo `.env`
 
 O Firebase emite um **`appId` diferente para cada plataforma**, e normalmente uma
-`apiKey` diferente também. O `FirebaseEnv` guarda um único conjunto de chaves, então
-o `.env` serve **uma plataforma de cada vez**: preencher com as chaves de web e rodar
-no Android entrega ao `initializeApp` um `appId` que não é o do Android.
+`apiKey` diferente também. Preencher o `.env` com as chaves da web e rodar no Android
+entregaria ao `initializeApp` um `appId` que não é o do Android.
 
-Para suportar web e Android ao mesmo tempo, o caminho é chaves por plataforma
-(`FIREBASE_WEB_APP_ID`, `FIREBASE_ANDROID_APP_ID`, …) com o bootstrap escolhendo por
-`kIsWeb`/`defaultTargetPlatform`. Ainda não implementado.
+Por isso qualquer uma das seis chaves aceita um **prefixo de plataforma**, e a variante
+prefixada vence a genérica:
+
+| Chave lida | Vale quando |
+| --- | --- |
+| `FIREBASE_WEB_APP_ID` | rodando na web |
+| `FIREBASE_APP_ID` | a variante da plataforma corrente está vazia ou ausente |
+
+Prefixos: `WEB`, `ANDROID`, `IOS`, `MACOS`, `WINDOWS`. A plataforma corrente sai de
+`kIsWeb` primeiro e só então de `defaultTargetPlatform` — na web o
+`defaultTargetPlatform` responde o sistema de quem navega, e sozinho escolheria o
+`appId` errado num celular Android.
+
+Na prática, o que é do projeto fica declarado uma vez e só o que muda se repete:
+
+```bash
+FIREBASE_PROJECT_ID=seu-projeto
+FIREBASE_MESSAGING_SENDER_ID=1234567890
+
+FIREBASE_WEB_API_KEY=AIza...web
+FIREBASE_WEB_APP_ID=1:1234567890:web:abc123
+FIREBASE_WEB_AUTH_DOMAIN=seu-projeto.firebaseapp.com
+
+FIREBASE_ANDROID_API_KEY=AIza...android
+FIREBASE_ANDROID_APP_ID=1:1234567890:android:def456
+```
+
+Um `.env` só com as chaves genéricas continua válido — é o caminho de quem usa uma
+plataforma só, e nada precisa ser editado. No Linux, onde o Firebase não tem suporte,
+só as genéricas são lidas e o app sobe sem login.
 
 ### Login com Google no Android exige SHA-1
 
@@ -199,7 +225,7 @@ presentation  →  domain  ←  data
 ```
 lib/
 ├── core/
-│   ├── config/          AppConfig (.env), FirebaseEnv
+│   ├── config/          AppConfig (.env), FirebaseEnv, FirebasePlatform
 │   ├── constants/       endpoints da Open Library
 │   ├── di/              service locator (get_it)
 │   ├── error/           exceptions, failures, Result<T>
@@ -242,11 +268,12 @@ flutter test
 flutter analyze
 ```
 
-31 testes cobrindo os pontos onde o erro dói:
+37 testes cobrindo os pontos onde o erro dói:
 
 | Arquivo | O que garante |
 | --- | --- |
 | `app_config_test.dart` | fallback do `.env`, headers, HTTP Basic |
+| `firebase_env_test.dart` | precedência das chaves por plataforma, compatibilidade do `.env` antigo |
 | `book_model_test.dart` | parsing tolerante, round-trip da persistência |
 | `home_controller_test.dart` | debounce, resposta obsoleta, paginação sem duplicatas |
 | `favorites_controller_test.dart` | rollback da remoção otimista |
