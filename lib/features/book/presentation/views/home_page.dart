@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/state/ui_state.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_controller.dart';
+import '../../../../core/theme/theme_mode_button.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/widgets/user_menu.dart';
@@ -78,6 +80,7 @@ class _HomePageState extends State<HomePage> {
               title: const _Brand(),
               toolbarHeight: 64,
               actions: <Widget>[
+                ThemeModeButton(controller: sl<ThemeController>()),
                 IconButton(
                   icon: const Icon(Icons.bookmarks_outlined),
                   tooltip: 'Minha Estante',

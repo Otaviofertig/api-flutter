@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'core/config/app_config.dart';
 import 'core/di/injector.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
 import 'features/auth/data/datasources/firebase_bootstrap.dart';
 import 'features/auth/presentation/controllers/auth_controller.dart';
 import 'features/auth/presentation/views/auth_gate.dart';
@@ -28,13 +29,23 @@ class LibriaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Libria',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
-      home: AuthGate(
+    final ThemeController theme = sl<ThemeController>();
+
+    // A raiz é o único ponto alto o bastante para trocar o tema do app
+    // inteiro; por isso quem escuta o controller é ela, e não as telas.
+    return ListenableBuilder(
+      listenable: theme,
+      builder: (BuildContext context, Widget? child) => MaterialApp(
+        title: 'Libria',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: theme.mode,
+        home: child,
+      ),
+      // Fora do builder: a árvore de telas não precisa remontar a cada troca
+      // de tema — só o MaterialApp acima dela muda.
+      child: AuthGate(
         controller: sl<AuthController>(),
         isAuthEnabled: isAuthEnabled,
       ),

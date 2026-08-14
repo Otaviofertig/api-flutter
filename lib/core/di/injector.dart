@@ -31,6 +31,8 @@ import '../config/app_config.dart';
 import '../network/http_client.dart';
 import '../network/http_client_impl.dart';
 import '../session/session_scope.dart';
+import '../theme/theme_controller.dart';
+import '../theme/theme_preference.dart';
 
 /// Service locator da aplicação.
 final GetIt sl = GetIt.instance;
@@ -49,6 +51,16 @@ Future<void> setupInjector(AppConfig config, {bool isAuthEnabled = false}) async
   sl.registerSingleton<SharedPreferences>(prefs);
 
   sl.registerLazySingleton<IHttpClient>(() => HttpClientImpl(config: sl<AppConfig>()));
+
+  // --- Tema ------------------------------------------------------------------
+  // Preferência de app, não de feature: quem escuta é a raiz, acima das telas.
+  sl.registerLazySingleton<IThemePreference>(
+    () => SharedPreferencesThemePreference(sl<SharedPreferences>()),
+  );
+  sl.registerLazySingleton<ThemeController>(
+    () => ThemeController(sl<IThemePreference>()),
+    dispose: (ThemeController controller) => controller.dispose(),
+  );
 
   // --- Data ------------------------------------------------------------------
   sl.registerLazySingleton<IBookRemoteDataSource>(
