@@ -6,11 +6,14 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../domain/entities/book.dart';
 import '../../domain/entities/book_detail.dart';
+import '../../domain/entities/reading_status.dart';
 import '../../domain/usecases/get_book_detail.dart';
-import '../../domain/usecases/is_favorite.dart';
+import '../../domain/usecases/get_reading_status.dart';
+import '../../domain/usecases/set_reading_status.dart';
 import '../../domain/usecases/toggle_favorite.dart';
 import '../controllers/book_detail_controller.dart';
 import '../widgets/book_cover.dart';
+import '../widgets/reading_status_menu.dart';
 import '../widgets/shimmer_box.dart';
 import '../widgets/state_view.dart';
 import 'author_page.dart';
@@ -39,7 +42,8 @@ class _BookDetailPageState extends State<BookDetailPage> {
   late final BookDetailController _controller = BookDetailController(
     sl<GetBookDetail>(),
     sl<ToggleFavorite>(),
-    sl<IsFavorite>(),
+    sl<GetReadingStatus>(),
+    sl<SetReadingStatus>(),
     widget.book,
   );
 
@@ -59,7 +63,14 @@ class _BookDetailPageState extends State<BookDetailPage> {
   }
 
   Future<void> _onToggleFavorite() async {
-    final String message = await _controller.toggleFavorite();
+    _showResult(await _controller.toggleFavorite());
+  }
+
+  Future<void> _onStatusChanged(ReadingStatus status) async {
+    _showResult(await _controller.setStatus(status));
+  }
+
+  void _showResult(String message) {
     if (!mounted || message.isEmpty) return;
 
     _favoritesChanged = true;
@@ -93,9 +104,10 @@ class _BookDetailPageState extends State<BookDetailPage> {
               ),
             SuccessState<BookDetail>(:final BookDetail data) => _DetailContent(
                 detail: data,
-                isFavorite: _controller.isFavorite,
+                status: _controller.status,
                 isBusy: _controller.isFavoriteBusy,
                 onToggleFavorite: _onToggleFavorite,
+                onStatusChanged: _onStatusChanged,
               ),
           };
         },
@@ -108,15 +120,20 @@ class _BookDetailPageState extends State<BookDetailPage> {
 class _DetailContent extends StatelessWidget {
   const _DetailContent({
     required this.detail,
-    required this.isFavorite,
+    required this.status,
     required this.isBusy,
     required this.onToggleFavorite,
+    required this.onStatusChanged,
   });
 
   final BookDetail detail;
-  final bool isFavorite;
+
+  /// `null` quando o livro não está na estante.
+  final ReadingStatus? status;
+
   final bool isBusy;
   final VoidCallback onToggleFavorite;
+  final void Function(ReadingStatus status) onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -128,9 +145,10 @@ class _DetailContent extends StatelessWidget {
 
         final Widget cover = _CoverPanel(
           detail: detail,
-          isFavorite: isFavorite,
+          status: status,
           isBusy: isBusy,
           onToggleFavorite: onToggleFavorite,
+          onStatusChanged: onStatusChanged,
           maxWidth: isWide ? 260 : 200,
         );
 
@@ -169,16 +187,18 @@ class _DetailContent extends StatelessWidget {
 class _CoverPanel extends StatelessWidget {
   const _CoverPanel({
     required this.detail,
-    required this.isFavorite,
+    required this.status,
     required this.isBusy,
     required this.onToggleFavorite,
+    required this.onStatusChanged,
     required this.maxWidth,
   });
 
   final BookDetail detail;
-  final bool isFavorite;
+  final ReadingStatus? status;
   final bool isBusy;
   final VoidCallback onToggleFavorite;
+  final void Function(ReadingStatus status) onStatusChanged;
   final double maxWidth;
 
   @override
@@ -210,13 +230,61 @@ class _CoverPanel extends StatelessWidget {
         Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: maxWidth),
-            child: _FavoriteButton(
-              isFavorite: isFavorite,
-              isBusy: isBusy,
-              onPressed: onToggleFavorite,
+            child: Column(
+              children: <Widget>[
+                _FavoriteButton(
+                  isFavorite: status != null,
+                  isBusy: isBusy,
+                  onPressed: onToggleFavorite,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _StatusPicker(
+                  status: status,
+                  isBusy: isBusy,
+                  onChanged: onStatusChanged,
+                ),
+              ],
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Prateleiras da estante, para marcar em que ponto da leitura o livro está.
+///
+/// Aparece mesmo com o livro fora da estante: escolher "Lendo" num livro que
+/// se acabou de encontrar salva e marca de uma vez, sem exigir "adicionar"
+/// antes.
+class _StatusPicker extends StatelessWidget {
+  const _StatusPicker({
+    required this.status,
+    required this.isBusy,
+    required this.onChanged,
+  });
+
+  final ReadingStatus? status;
+  final bool isBusy;
+  final void Function(ReadingStatus status) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      alignment: WrapAlignment.center,
+      children: <Widget>[
+        for (final ReadingStatus option in ReadingStatus.values)
+          ChoiceChip(
+            selected: option == status,
+            avatar: Icon(iconForStatus(option), size: 18),
+            label: Text(option.label),
+            visualDensity: VisualDensity.compact,
+            // Reclicar a prateleira atual não faz nada: desmarcar por aqui
+            // seria ambíguo entre "tirar da estante" e "voltar ao início".
+            onSelected: isBusy || option == status ? null : (_) => onChanged(option),
+          ),
       ],
     );
   }

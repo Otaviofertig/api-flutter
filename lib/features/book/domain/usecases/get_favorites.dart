@@ -1,14 +1,14 @@
 import '../../../../core/error/result.dart';
 import '../../../../core/usecases/usecase.dart';
-import '../entities/book.dart';
+import '../entities/shelf_entry.dart';
 import '../repositories/book_repository.dart';
 
-/// Lista os livros salvos na "Minha Estante".
-class GetFavorites implements NoParamsUseCase<List<Book>> {
+/// Lista a "Minha Estante", cada livro com o seu status de leitura.
+class GetFavorites implements NoParamsUseCase<List<ShelfEntry>> {
   const GetFavorites(this._repository);
 
   final IFavoriteRepository _repository;
 
   @override
-  Future<Result<List<Book>>> call() => _repository.getFavorites();
+  Future<Result<List<ShelfEntry>>> call() => _repository.getFavorites();
 }
