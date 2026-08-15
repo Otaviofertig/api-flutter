@@ -1,7 +1,8 @@
 # Libria — Seu Guia Literário
 
 App Flutter que consome a API pública da [Open Library](https://openlibrary.org/):
-busca de livros, ficha completa da obra, estante pessoal e login com Firebase.
+busca de livros, ficha completa da obra, ficha do autor, estante pessoal com
+status de leitura e login com Firebase.
 
 A Open Library mantém o registro aberto de milhões de obras, mas a interface é de
 um arquivo, não de uma estante. O Libria é a camada de leitura em cima disso.
@@ -10,8 +11,22 @@ um arquivo, não de uma estante. O Libria é a camada de leitura em cima disso.
 | --- | --- |
 | **Plataformas** | Web, Android, iOS, Windows |
 | **Arquitetura** | Clean Architecture + MVC |
-| **Testes** | 40, em 8 arquivos |
-| **Código** | 66 arquivos Dart em `lib/` |
+| **Testes** | 91, em 13 arquivos |
+| **Código** | 86 arquivos Dart em `lib/` |
+
+---
+
+## O que o app faz
+
+| | |
+| --- | --- |
+| **Vitrine** | Sem busca digitada, a Home mostra as obras em alta (`/trending/daily.json`) |
+| **Busca** | Por título, autor ou ISBN, com debounce e paginação infinita |
+| **Obra** | Capa, sinopse, assuntos e ano, com autores clicáveis |
+| **Autor** | Retrato, datas, biografia e bibliografia paginada |
+| **Estante** | Prateleiras *Quero ler* / *Lendo* / *Lido*, com contadores e filtro por aba |
+| **Tema** | Claro, escuro ou seguindo o sistema — a escolha é lembrada |
+| **Conta** | Login opcional; cada conta tem a sua estante no mesmo aparelho |
 
 ---
 
@@ -262,6 +277,16 @@ lib/
   visível para quem entra. A estante criada antes do primeiro login é transferida
   para a primeira conta que entrar — movendo, não copiando, para a segunda conta não
   herdar os livros de quem usou o app antes.
+- **Status de leitura fora de `Book`**: quem carrega a prateleira é `ShelfEntry`. O
+  mesmo livro vindo da busca não tem status nenhum, e o campo sujaria a entidade em
+  toda tela que a usa. A chave gravada em disco (`quero_ler`) é separada do nome do
+  valor no enum (`wantToRead`): renomear no código não invalida estante de ninguém, e
+  registro antigo sem `status` volta como "Quero ler" sem migração.
+- **`fields` na busca e no trending**: pedir só as colunas usadas derruba a resposta
+  de 20 obras em alta de 58 KB para 3,2 KB.
+- **Autores pareados por índice**: `author_name` e `author_key` chegam como listas
+  paralelas, mas autor sem registro próprio devolve nome sem chave. `authorEntries`
+  devolve id nulo em vez de desalinhar — link para o autor errado é pior que nenhum.
 
 ---
 
@@ -272,7 +297,7 @@ flutter test
 flutter analyze
 ```
 
-40 testes cobrindo os pontos onde o erro dói:
+91 testes cobrindo os pontos onde o erro dói:
 
 | Arquivo | O que garante |
 | --- | --- |
@@ -280,8 +305,13 @@ flutter analyze
 | `firebase_env_test.dart` | precedência das chaves por plataforma, compatibilidade do `.env` antigo |
 | `book_model_test.dart` | parsing tolerante, round-trip da persistência |
 | `home_controller_test.dart` | debounce, resposta obsoleta, paginação sem duplicatas |
-| `favorites_controller_test.dart` | rollback da remoção otimista |
-| `book_local_datasource_test.dart` | isolamento da estante entre contas |
+| `favorites_controller_test.dart` | rollback da remoção e da troca de prateleira |
+| `book_local_datasource_test.dart` | isolamento da estante entre contas, estante antiga sem `status` |
+| `set_reading_status_test.dart` | marcar livro fora da estante salva junto; chave persistida estável |
+| `home_highlights_test.dart` | vitrine falha sem contaminar a busca; limpar a busca não recarrega |
+| `author_controller_test.dart` | ficha e bibliografia falham separado, paginação sem duplicatas |
+| `author_model_test.dart` | `bio` em dois formatos, `photos` com `-1`, autores pareados por índice |
+| `theme_controller_test.dart` | persistência da escolha, `system` resolvido pelo aparelho |
 | `login_controller_test.dart` | validação de credenciais e mensagens de erro |
 | `animated_brand_mark_test.dart` | animação sem exceção, respeito a "reduzir movimento", dispose |
 
@@ -292,12 +322,18 @@ flutter analyze
 | Recurso | Endpoint |
 | --- | --- |
 | Busca | `GET /search.json?q=&fields=&limit=&page=` |
+| Em alta | `GET /trending/{daily,weekly,monthly,…}.json?fields=&limit=` |
 | Obra | `GET /works/{id}.json` |
+| Autor | `GET /authors/{id}.json` |
+| Obras do autor | `GET /authors/{id}/works.json?limit=&offset=` |
 | Capas | `https://covers.openlibrary.org/b/id/{id}-L.jpg` |
+| Retratos | `https://covers.openlibrary.org/a/id/{id}-M.jpg` — note o `/a/` |
 
-A busca pede só os campos usados (`fields=...`), o que reduz bastante o payload. O
-`User-Agent` leva um e-mail de contato, conforme as boas práticas de uso da API —
-configure o seu em `OPENLIBRARY_CONTACT_EMAIL`.
+Busca e trending pedem só os campos usados (`fields=...`): medido no endpoint real,
+20 obras em alta caem de 58 KB para 3,2 KB. O endpoint de obras do autor **não**
+aceita `fields` — ali o recorte fica no parser. O `User-Agent` leva um e-mail de
+contato, conforme as boas práticas de uso da API — configure o seu em
+`OPENLIBRARY_CONTACT_EMAIL`.
 
 ---
 
