@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/session/session_scope.dart';
+import '../../domain/entities/reading_status.dart';
 import '../models/book_model.dart';
+import '../models/shelf_entry_model.dart';
 import 'book_local_datasource.dart';
 
 /// Estante persistida em `shared_preferences` como uma lista de strings JSON.
@@ -30,32 +32,65 @@ final class BookLocalDataSourceImpl implements IBookLocalDataSource {
   static String keyForUser(String userId) => '$userKeyPrefix$userId';
 
   @override
-  Future<List<BookModel>> getFavorites() async => _readAll(await _resolveKey());
+  Future<List<ShelfEntryModel>> getFavorites() async => _readAll(await _resolveKey());
 
   @override
-  Future<void> saveFavorite(BookModel book) async {
+  Future<void> saveFavorite(
+    BookModel book, {
+    ReadingStatus status = ReadingStatus.initial,
+  }) async {
     final String key = await _resolveKey();
-    final List<BookModel> favorites = _readAll(key);
-    if (favorites.any((BookModel b) => b.id == book.id)) return;
+    final List<ShelfEntryModel> shelf = _readAll(key);
+
+    // Salvar de novo não reescreve o status: quem já marcou "Lido" não perde
+    // a marcação por tocar em "adicionar" outra vez.
+    if (shelf.any((ShelfEntryModel e) => e.id == book.id)) return;
+
+    final ShelfEntryModel entry = ShelfEntryModel(book: book, status: status);
 
     // Mais recentes primeiro: a estante reflete a ordem de adição.
-    await _writeAll(key, <BookModel>[book, ...favorites]);
+    await _writeAll(key, <ShelfEntryModel>[entry, ...shelf]);
   }
 
   @override
   Future<void> removeFavorite(String bookId) async {
     final String key = await _resolveKey();
-    final List<BookModel> favorites = _readAll(key);
-    final List<BookModel> updated =
-        favorites.where((BookModel b) => b.id != bookId).toList(growable: false);
+    final List<ShelfEntryModel> shelf = _readAll(key);
+    final List<ShelfEntryModel> updated =
+        shelf.where((ShelfEntryModel e) => e.id != bookId).toList(growable: false);
 
-    if (updated.length == favorites.length) return;
+    if (updated.length == shelf.length) return;
     await _writeAll(key, updated);
   }
 
   @override
   Future<bool> isFavorite(String bookId) async {
-    return _readAll(await _resolveKey()).any((BookModel b) => b.id == bookId);
+    return _readAll(await _resolveKey()).any((ShelfEntryModel e) => e.id == bookId);
+  }
+
+  @override
+  Future<void> setStatus(String bookId, ReadingStatus status) async {
+    final String key = await _resolveKey();
+    final List<ShelfEntryModel> shelf = _readAll(key);
+
+    bool changed = false;
+    final List<ShelfEntryModel> updated = shelf.map((ShelfEntryModel entry) {
+      if (entry.id != bookId || entry.status == status) return entry;
+      changed = true;
+      return entry.withStatus(status);
+    }).toList(growable: false);
+
+    // Nada mudou: não gasta escrita em disco.
+    if (!changed) return;
+    await _writeAll(key, updated);
+  }
+
+  @override
+  Future<ReadingStatus?> statusOf(String bookId) async {
+    for (final ShelfEntryModel entry in _readAll(await _resolveKey())) {
+      if (entry.id == bookId) return entry.status;
+    }
+    return null;
   }
 
   // --- Escopo ----------------------------------------------------------------
@@ -90,17 +125,19 @@ final class BookLocalDataSourceImpl implements IBookLocalDataSource {
 
   // --- Infra -----------------------------------------------------------------
 
-  List<BookModel> _readAll(String key) {
+  List<ShelfEntryModel> _readAll(String key) {
     try {
       final List<String> raw = _prefs.getStringList(key) ?? const <String>[];
 
       return raw
-          .map<BookModel?>((String item) {
+          .map<ShelfEntryModel?>((String item) {
             final Object? decoded = jsonDecode(item);
-            return decoded is Map<String, dynamic> ? BookModel.fromLocalJson(decoded) : null;
+            return decoded is Map<String, dynamic>
+                ? ShelfEntryModel.fromLocalJson(decoded)
+                : null;
           })
-          .whereType<BookModel>()
-          .where((BookModel b) => b.id.isNotEmpty)
+          .whereType<ShelfEntryModel>()
+          .where((ShelfEntryModel e) => e.id.isNotEmpty)
           .toList(growable: false);
     } on FormatException {
       // Registro corrompido não pode derrubar a estante inteira.
@@ -110,10 +147,11 @@ final class BookLocalDataSourceImpl implements IBookLocalDataSource {
     }
   }
 
-  Future<void> _writeAll(String key, List<BookModel> books) async {
+  Future<void> _writeAll(String key, List<ShelfEntryModel> shelf) async {
     try {
-      final List<String> encoded =
-          books.map((BookModel b) => jsonEncode(b.toLocalJson())).toList(growable: false);
+      final List<String> encoded = shelf
+          .map((ShelfEntryModel e) => jsonEncode(e.toLocalJson()))
+          .toList(growable: false);
 
       final bool ok = await _prefs.setStringList(key, encoded);
       if (!ok) throw const CacheException('Não foi possível salvar na sua estante.');

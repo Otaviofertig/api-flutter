@@ -1,6 +1,8 @@
 import '../../../../core/error/result.dart';
 import '../entities/book.dart';
 import '../entities/book_detail.dart';
+import '../entities/reading_status.dart';
+import '../entities/shelf_entry.dart';
 
 /// Contrato de acesso a livros remotos (Open Library).
 ///
@@ -10,18 +12,34 @@ abstract interface class IBookRepository {
   /// Busca por título, autor ou ISBN. [page] começa em 1.
   Future<Result<List<Book>>> searchBooks({required String query, int page = 1});
 
+  /// Obras em alta, usadas como vitrine quando não há busca digitada.
+  Future<Result<List<Book>>> getTrending({String period, int? limit});
+
   /// Detalhes de uma obra. [fallback] preenche campos que o endpoint de
   /// detalhe não retorna (autores e ano vêm da busca).
   Future<Result<BookDetail>> getBookDetail({required String workId, Book? fallback});
 }
 
-/// Contrato da estante local (favoritos).
+/// Contrato da estante local: quais livros estão salvos e em que ponto da
+/// leitura cada um está.
 abstract interface class IFavoriteRepository {
-  Future<Result<List<Book>>> getFavorites();
+  /// A estante inteira, cada livro com o seu status.
+  Future<Result<List<ShelfEntry>>> getFavorites();
 
-  Future<Result<void>> addFavorite(Book book);
+  /// Adiciona à estante. [status] vale apenas na primeira vez — salvar de
+  /// novo não reescreve o ponto de leitura já marcado.
+  Future<Result<void>> addFavorite(Book book, {ReadingStatus status});
 
   Future<Result<void>> removeFavorite(String bookId);
 
   Future<Result<bool>> isFavorite(String bookId);
+
+  /// Move o livro para outro ponto da leitura.
+  Future<Result<void>> setStatus({
+    required String bookId,
+    required ReadingStatus status,
+  });
+
+  /// Status atual, ou `null` quando o livro não está na estante.
+  Future<Result<ReadingStatus?>> statusOf(String bookId);
 }

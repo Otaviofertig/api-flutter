@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:libria/core/session/session_scope.dart';
 import 'package:libria/features/book/data/datasources/book_local_datasource_impl.dart';
 import 'package:libria/features/book/data/models/book_model.dart';
+import 'package:libria/features/book/data/models/shelf_entry_model.dart';
+import 'package:libria/features/book/domain/entities/reading_status.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Sessão controlável: reproduz login, logout e troca de conta em runtime.
@@ -21,8 +23,8 @@ Future<BookLocalDataSourceImpl> _sourceFor(_FakeSessionScope session) async {
 }
 
 Future<List<String>> _idsIn(BookLocalDataSourceImpl source) async {
-  final List<BookModel> books = await source.getFavorites();
-  return books.map((BookModel b) => b.id).toList(growable: false);
+  final List<ShelfEntryModel> shelf = await source.getFavorites();
+  return shelf.map((ShelfEntryModel e) => e.id).toList(growable: false);
 }
 
 void main() {
@@ -112,6 +114,84 @@ void main() {
 
       session.scopeId = 'user-a';
       expect(await _idsIn(source), <String>[_hobbit.id]);
+    });
+  });
+
+  group('status de leitura', () {
+    test('livro salvo entra em "Quero ler"', () async {
+      final BookLocalDataSourceImpl source = await _sourceFor(_FakeSessionScope());
+
+      await source.saveFavorite(_dune);
+
+      expect(await source.statusOf(_dune.id), ReadingStatus.wantToRead);
+    });
+
+    test('salvar já marcando a prateleira respeita a escolha', () async {
+      final BookLocalDataSourceImpl source = await _sourceFor(_FakeSessionScope());
+
+      await source.saveFavorite(_dune, status: ReadingStatus.reading);
+
+      expect(await source.statusOf(_dune.id), ReadingStatus.reading);
+    });
+
+    test('salvar de novo não reescreve o status já marcado', () async {
+      final BookLocalDataSourceImpl source = await _sourceFor(_FakeSessionScope());
+
+      await source.saveFavorite(_dune);
+      await source.setStatus(_dune.id, ReadingStatus.read);
+      // Quem já terminou o livro não pode perder a marcação por tocar de novo
+      // em "adicionar".
+      await source.saveFavorite(_dune, status: ReadingStatus.wantToRead);
+
+      expect(await source.statusOf(_dune.id), ReadingStatus.read);
+    });
+
+    test('mudar de prateleira sobrevive à releitura', () async {
+      final _FakeSessionScope session = _FakeSessionScope('user-a');
+      final BookLocalDataSourceImpl source = await _sourceFor(session);
+
+      await source.saveFavorite(_dune);
+      await source.setStatus(_dune.id, ReadingStatus.reading);
+
+      final BookLocalDataSourceImpl reopened = await _sourceFor(session);
+      expect(await reopened.statusOf(_dune.id), ReadingStatus.reading);
+    });
+
+    test('marcar livro fora da estante não o adiciona', () async {
+      final BookLocalDataSourceImpl source = await _sourceFor(_FakeSessionScope());
+
+      await source.setStatus('OL999W', ReadingStatus.read);
+
+      expect(await _idsIn(source), isEmpty);
+      expect(await source.statusOf('OL999W'), isNull);
+    });
+
+    test('a estante gravada antes desta feature volta em "Quero ler"', () async {
+      // Formato antigo: o livro sem a chave `status`. Nada de migração — o
+      // parser trata a ausência como o estado inicial.
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        BookLocalDataSourceImpl.anonymousKey: <String>[
+          '{"id":"OL1W","title":"Duna","authors":["Herbert"]}',
+        ],
+      });
+      final BookLocalDataSourceImpl source = await _sourceFor(_FakeSessionScope());
+
+      final List<ShelfEntryModel> shelf = await source.getFavorites();
+
+      expect(shelf.single.id, 'OL1W');
+      expect(shelf.single.status, ReadingStatus.wantToRead);
+      expect(shelf.single.book.title, 'Duna');
+    });
+
+    test('status desconhecido no disco cai no estado inicial', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{
+        BookLocalDataSourceImpl.anonymousKey: <String>[
+          '{"id":"OL1W","title":"Duna","status":"prateleira_que_nao_existe"}',
+        ],
+      });
+      final BookLocalDataSourceImpl source = await _sourceFor(_FakeSessionScope());
+
+      expect(await source.statusOf('OL1W'), ReadingStatus.wantToRead);
     });
   });
 

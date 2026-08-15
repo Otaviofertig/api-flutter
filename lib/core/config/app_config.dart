@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'firebase_env.dart';
+import 'firebase_platform.dart';
 
 /// Configuração da aplicação lida do arquivo `.env` (não versionado).
 ///
@@ -27,7 +28,11 @@ final class AppConfig {
   });
 
   /// Monta a configuração a partir das variáveis já carregadas por [dotenv].
-  factory AppConfig.fromEnv() {
+  ///
+  /// [platform] escolhe o conjunto de chaves do Firebase; omitido, vale a
+  /// plataforma em que o app está rodando. Existe como parâmetro para que o
+  /// teste não dependa de onde a suíte executa.
+  factory AppConfig.fromEnv({FirebasePlatform? platform}) {
     return AppConfig(
       apiBaseUrl: _string('OPENLIBRARY_BASE_URL', 'https://openlibrary.org'),
       coversBaseUrl: _string('OPENLIBRARY_COVERS_URL', 'https://covers.openlibrary.org'),
@@ -36,13 +41,9 @@ final class AppConfig {
       searchPageSize: _int('SEARCH_PAGE_SIZE', 20),
       accessKey: _optional('OPENLIBRARY_ACCESS_KEY'),
       secretKey: _optional('OPENLIBRARY_SECRET_KEY'),
-      firebase: FirebaseEnv(
-        apiKey: _optional('FIREBASE_API_KEY'),
-        appId: _optional('FIREBASE_APP_ID'),
-        messagingSenderId: _optional('FIREBASE_MESSAGING_SENDER_ID'),
-        projectId: _optional('FIREBASE_PROJECT_ID'),
-        authDomain: _optional('FIREBASE_AUTH_DOMAIN'),
-        storageBucket: _optional('FIREBASE_STORAGE_BUCKET'),
+      firebase: FirebaseEnv.forPlatform(
+        platform ?? FirebasePlatform.current,
+        _optional,
       ),
     );
   }
@@ -89,10 +90,13 @@ final class AppConfig {
   ///
   /// O arquivo é opcional de propósito: em CI, ou num clone recém-feito sem
   /// `.env`, o app sobe com os valores públicos padrão em vez de quebrar.
-  static Future<AppConfig> load({String fileName = '.env'}) async {
+  static Future<AppConfig> load({
+    String fileName = '.env',
+    FirebasePlatform? platform,
+  }) async {
     try {
       await dotenv.load(fileName: fileName);
-      _instance = AppConfig.fromEnv();
+      _instance = AppConfig.fromEnv(platform: platform);
     } catch (_) {
       _instance = const AppConfig.fallback();
     }

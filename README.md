@@ -1,7 +1,8 @@
 # Libria — Seu Guia Literário
 
 App Flutter que consome a API pública da [Open Library](https://openlibrary.org/):
-busca de livros, ficha completa da obra, estante pessoal e login com Firebase.
+busca de livros, ficha completa da obra, ficha do autor, estante pessoal com
+status de leitura e login com Firebase.
 
 A Open Library mantém o registro aberto de milhões de obras, mas a interface é de
 um arquivo, não de uma estante. O Libria é a camada de leitura em cima disso.
@@ -10,8 +11,22 @@ um arquivo, não de uma estante. O Libria é a camada de leitura em cima disso.
 | --- | --- |
 | **Plataformas** | Web, Android, iOS, Windows |
 | **Arquitetura** | Clean Architecture + MVC |
-| **Testes** | 31, em 6 arquivos |
-| **Código** | 64 arquivos Dart em `lib/` |
+| **Testes** | 91, em 13 arquivos |
+| **Código** | 86 arquivos Dart em `lib/` |
+
+---
+
+## O que o app faz
+
+| | |
+| --- | --- |
+| **Vitrine** | Sem busca digitada, a Home mostra as obras em alta (`/trending/daily.json`) |
+| **Busca** | Por título, autor ou ISBN, com debounce e paginação infinita |
+| **Obra** | Capa, sinopse, assuntos e ano, com autores clicáveis |
+| **Autor** | Retrato, datas, biografia e bibliografia paginada |
+| **Estante** | Prateleiras *Quero ler* / *Lendo* / *Lido*, com contadores e filtro por aba |
+| **Tema** | Claro, escuro ou seguindo o sistema — a escolha é lembrada |
+| **Conta** | Login opcional; cada conta tem a sua estante no mesmo aparelho |
 
 ---
 
@@ -104,16 +119,42 @@ provedor Google pede um e-mail de suporte do projeto.
 Em **Authentication → Settings → Authorized domains**, confirme que `localhost`
 está na lista — é o que libera o popup de login rodando local.
 
-### Uma plataforma por `.env`
+### Mais de uma plataforma no mesmo `.env`
 
 O Firebase emite um **`appId` diferente para cada plataforma**, e normalmente uma
-`apiKey` diferente também. O `FirebaseEnv` guarda um único conjunto de chaves, então
-o `.env` serve **uma plataforma de cada vez**: preencher com as chaves de web e rodar
-no Android entrega ao `initializeApp` um `appId` que não é o do Android.
+`apiKey` diferente também. Preencher o `.env` com as chaves da web e rodar no Android
+entregaria ao `initializeApp` um `appId` que não é o do Android.
 
-Para suportar web e Android ao mesmo tempo, o caminho é chaves por plataforma
-(`FIREBASE_WEB_APP_ID`, `FIREBASE_ANDROID_APP_ID`, …) com o bootstrap escolhendo por
-`kIsWeb`/`defaultTargetPlatform`. Ainda não implementado.
+Por isso qualquer uma das seis chaves aceita um **prefixo de plataforma**, e a variante
+prefixada vence a genérica:
+
+| Chave lida | Vale quando |
+| --- | --- |
+| `FIREBASE_WEB_APP_ID` | rodando na web |
+| `FIREBASE_APP_ID` | a variante da plataforma corrente está vazia ou ausente |
+
+Prefixos: `WEB`, `ANDROID`, `IOS`, `MACOS`, `WINDOWS`. A plataforma corrente sai de
+`kIsWeb` primeiro e só então de `defaultTargetPlatform` — na web o
+`defaultTargetPlatform` responde o sistema de quem navega, e sozinho escolheria o
+`appId` errado num celular Android.
+
+Na prática, o que é do projeto fica declarado uma vez e só o que muda se repete:
+
+```bash
+FIREBASE_PROJECT_ID=seu-projeto
+FIREBASE_MESSAGING_SENDER_ID=1234567890
+
+FIREBASE_WEB_API_KEY=AIza...web
+FIREBASE_WEB_APP_ID=1:1234567890:web:abc123
+FIREBASE_WEB_AUTH_DOMAIN=seu-projeto.firebaseapp.com
+
+FIREBASE_ANDROID_API_KEY=AIza...android
+FIREBASE_ANDROID_APP_ID=1:1234567890:android:def456
+```
+
+Um `.env` só com as chaves genéricas continua válido — é o caminho de quem usa uma
+plataforma só, e nada precisa ser editado. No Linux, onde o Firebase não tem suporte,
+só as genéricas são lidas e o app sobe sem login.
 
 ### Login com Google no Android exige SHA-1
 
@@ -199,7 +240,7 @@ presentation  →  domain  ←  data
 ```
 lib/
 ├── core/
-│   ├── config/          AppConfig (.env), FirebaseEnv
+│   ├── config/          AppConfig (.env), FirebaseEnv, FirebasePlatform
 │   ├── constants/       endpoints da Open Library
 │   ├── di/              service locator (get_it)
 │   ├── error/           exceptions, failures, Result<T>
@@ -227,11 +268,25 @@ lib/
   sobrescreve um resultado mais novo.
 - **Null Object para autenticação**: sem Firebase configurado, a DI resolve uma fonte
   desabilitada em vez de espalhar `if (temFirebase)` pelas telas.
+- **Marca animada com um controller só**: o livro que abre na tela de login é
+  `CustomPainter` (glifo do Material não abre), e as etapas saem de `Interval`s do
+  mesmo `AnimationController` — um relógio por elemento sairia de fase. Com "reduzir
+  movimento" ligado no sistema, a marca aparece pronta e nada fica animando.
 - **Estante por conta**: a chave do armazenamento local deriva do uid via
   `ISessionScope`, então num aparelho compartilhado a estante de quem sai não fica
   visível para quem entra. A estante criada antes do primeiro login é transferida
   para a primeira conta que entrar — movendo, não copiando, para a segunda conta não
   herdar os livros de quem usou o app antes.
+- **Status de leitura fora de `Book`**: quem carrega a prateleira é `ShelfEntry`. O
+  mesmo livro vindo da busca não tem status nenhum, e o campo sujaria a entidade em
+  toda tela que a usa. A chave gravada em disco (`quero_ler`) é separada do nome do
+  valor no enum (`wantToRead`): renomear no código não invalida estante de ninguém, e
+  registro antigo sem `status` volta como "Quero ler" sem migração.
+- **`fields` na busca e no trending**: pedir só as colunas usadas derruba a resposta
+  de 20 obras em alta de 58 KB para 3,2 KB.
+- **Autores pareados por índice**: `author_name` e `author_key` chegam como listas
+  paralelas, mas autor sem registro próprio devolve nome sem chave. `authorEntries`
+  devolve id nulo em vez de desalinhar — link para o autor errado é pior que nenhum.
 
 ---
 
@@ -242,16 +297,23 @@ flutter test
 flutter analyze
 ```
 
-31 testes cobrindo os pontos onde o erro dói:
+91 testes cobrindo os pontos onde o erro dói:
 
 | Arquivo | O que garante |
 | --- | --- |
 | `app_config_test.dart` | fallback do `.env`, headers, HTTP Basic |
+| `firebase_env_test.dart` | precedência das chaves por plataforma, compatibilidade do `.env` antigo |
 | `book_model_test.dart` | parsing tolerante, round-trip da persistência |
 | `home_controller_test.dart` | debounce, resposta obsoleta, paginação sem duplicatas |
-| `favorites_controller_test.dart` | rollback da remoção otimista |
-| `book_local_datasource_test.dart` | isolamento da estante entre contas |
+| `favorites_controller_test.dart` | rollback da remoção e da troca de prateleira |
+| `book_local_datasource_test.dart` | isolamento da estante entre contas, estante antiga sem `status` |
+| `set_reading_status_test.dart` | marcar livro fora da estante salva junto; chave persistida estável |
+| `home_highlights_test.dart` | vitrine falha sem contaminar a busca; limpar a busca não recarrega |
+| `author_controller_test.dart` | ficha e bibliografia falham separado, paginação sem duplicatas |
+| `author_model_test.dart` | `bio` em dois formatos, `photos` com `-1`, autores pareados por índice |
+| `theme_controller_test.dart` | persistência da escolha, `system` resolvido pelo aparelho |
 | `login_controller_test.dart` | validação de credenciais e mensagens de erro |
+| `animated_brand_mark_test.dart` | animação sem exceção, respeito a "reduzir movimento", dispose |
 
 ---
 
@@ -260,12 +322,18 @@ flutter analyze
 | Recurso | Endpoint |
 | --- | --- |
 | Busca | `GET /search.json?q=&fields=&limit=&page=` |
+| Em alta | `GET /trending/{daily,weekly,monthly,…}.json?fields=&limit=` |
 | Obra | `GET /works/{id}.json` |
+| Autor | `GET /authors/{id}.json` |
+| Obras do autor | `GET /authors/{id}/works.json?limit=&offset=` |
 | Capas | `https://covers.openlibrary.org/b/id/{id}-L.jpg` |
+| Retratos | `https://covers.openlibrary.org/a/id/{id}-M.jpg` — note o `/a/` |
 
-A busca pede só os campos usados (`fields=...`), o que reduz bastante o payload. O
-`User-Agent` leva um e-mail de contato, conforme as boas práticas de uso da API —
-configure o seu em `OPENLIBRARY_CONTACT_EMAIL`.
+Busca e trending pedem só os campos usados (`fields=...`): medido no endpoint real,
+20 obras em alta caem de 58 KB para 3,2 KB. O endpoint de obras do autor **não**
+aceita `fields` — ali o recorte fica no parser. O `User-Agent` leva um e-mail de
+contato, conforme as boas práticas de uso da API — configure o seu em
+`OPENLIBRARY_CONTACT_EMAIL`.
 
 ---
 

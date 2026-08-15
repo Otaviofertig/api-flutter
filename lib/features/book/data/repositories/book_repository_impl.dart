@@ -21,6 +21,11 @@ final class BookRepositoryImpl implements IBookRepository {
   }
 
   @override
+  Future<Result<List<Book>>> getTrending({String period = 'daily', int? limit}) async {
+    return _guard<List<Book>>(() => _remote.getTrending(period: period, limit: limit));
+  }
+
+  @override
   Future<Result<BookDetail>> getBookDetail({required String workId, Book? fallback}) async {
     return _guard<BookDetail>(
       () => _remote.getBookDetail(workId: workId, fallback: fallback),

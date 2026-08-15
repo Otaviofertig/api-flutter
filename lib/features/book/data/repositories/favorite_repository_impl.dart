@@ -2,6 +2,8 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../../../core/error/result.dart';
 import '../../domain/entities/book.dart';
+import '../../domain/entities/reading_status.dart';
+import '../../domain/entities/shelf_entry.dart';
 import '../../domain/repositories/book_repository.dart';
 import '../datasources/book_local_datasource.dart';
 import '../models/book_model.dart';
@@ -13,13 +15,18 @@ final class FavoriteRepositoryImpl implements IFavoriteRepository {
   final IBookLocalDataSource _local;
 
   @override
-  Future<Result<List<Book>>> getFavorites() {
-    return _guard<List<Book>>(() async => await _local.getFavorites());
+  Future<Result<List<ShelfEntry>>> getFavorites() {
+    return _guard<List<ShelfEntry>>(() async => await _local.getFavorites());
   }
 
   @override
-  Future<Result<void>> addFavorite(Book book) {
-    return _guard<void>(() => _local.saveFavorite(BookModel.fromEntity(book)));
+  Future<Result<void>> addFavorite(
+    Book book, {
+    ReadingStatus status = ReadingStatus.initial,
+  }) {
+    return _guard<void>(
+      () => _local.saveFavorite(BookModel.fromEntity(book), status: status),
+    );
   }
 
   @override
@@ -30,6 +37,19 @@ final class FavoriteRepositoryImpl implements IFavoriteRepository {
   @override
   Future<Result<bool>> isFavorite(String bookId) {
     return _guard<bool>(() => _local.isFavorite(bookId));
+  }
+
+  @override
+  Future<Result<void>> setStatus({
+    required String bookId,
+    required ReadingStatus status,
+  }) {
+    return _guard<void>(() => _local.setStatus(bookId, status));
+  }
+
+  @override
+  Future<Result<ReadingStatus?>> statusOf(String bookId) {
+    return _guard<ReadingStatus?>(() => _local.statusOf(bookId));
   }
 
   Future<Result<T>> _guard<T>(Future<T> Function() action) async {

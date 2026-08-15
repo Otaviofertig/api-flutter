@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../../core/di/injector.dart';
 import '../../../../core/state/ui_state.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_controller.dart';
+import '../../../../core/theme/theme_mode_button.dart';
 import '../../../../core/utils/responsive.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/widgets/user_menu.dart';
 import '../../domain/entities/book.dart';
+import '../../domain/usecases/get_trending_books.dart';
 import '../../domain/usecases/search_books.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/book_grid.dart';
@@ -24,13 +27,17 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late final HomeController _controller = HomeController(sl<SearchBooks>());
+  late final HomeController _controller = HomeController(
+    sl<SearchBooks>(),
+    trendingBooks: sl<GetTrendingBooks>(),
+  );
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _controller.loadHighlights();
   }
 
   @override
@@ -78,6 +85,7 @@ class _HomePageState extends State<HomePage> {
               title: const _Brand(),
               toolbarHeight: 64,
               actions: <Widget>[
+                ThemeModeButton(controller: sl<ThemeController>()),
                 IconButton(
                   icon: const Icon(Icons.bookmarks_outlined),
                   tooltip: 'Minha Estante',
@@ -126,13 +134,10 @@ class _HomeBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (controller.state) {
-      IdleState<List<Book>>() => const SliverFillRemaining(
-          hasScrollBody: false,
-          child: StateView(
-            icon: Icons.auto_stories_outlined,
-            title: 'O que você quer ler hoje?',
-            message: 'Busque por título, autor ou ISBN e explore o acervo da Open Library.',
-          ),
+      // Sem busca digitada, a Home é vitrine — não um campo de texto esperando.
+      IdleState<List<Book>>() => _HighlightsSliver(
+          state: controller.highlights,
+          onBookTap: onBookTap,
         ),
       LoadingState<List<Book>>() => const BookGridSkeleton(),
       EmptyState<List<Book>>(:final String message) => SliverFillRemaining(
@@ -153,6 +158,75 @@ class _HomeBody extends StatelessWidget {
           onBookTap: onBookTap,
         ),
     };
+  }
+}
+
+/// Vitrine de obras em alta, mostrada enquanto ninguém digitou nada.
+///
+/// Falha e vazio caem no convite de busca original em vez de mostrar erro: a
+/// vitrine é um extra, e quem abriu o app para procurar um título específico
+/// não deveria levar uma tela de erro por causa dela.
+class _HighlightsSliver extends StatelessWidget {
+  const _HighlightsSliver({required this.state, required this.onBookTap});
+
+  final UiState<List<Book>> state;
+  final void Function(Book book) onBookTap;
+
+  static const Widget _invite = SliverFillRemaining(
+    hasScrollBody: false,
+    child: StateView(
+      icon: Icons.auto_stories_outlined,
+      title: 'O que você quer ler hoje?',
+      message: 'Busque por título, autor ou ISBN e explore o acervo da Open Library.',
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (state) {
+      IdleState<List<Book>>() ||
+      EmptyState<List<Book>>() ||
+      ErrorState<List<Book>>() =>
+        _invite,
+      LoadingState<List<Book>>() => const SliverMainAxisGroup(
+          slivers: <Widget>[_HighlightsHeader(), BookGridSkeleton(itemCount: 6)],
+        ),
+      SuccessState<List<Book>>(:final List<Book> data) => SliverMainAxisGroup(
+          slivers: <Widget>[
+            const _HighlightsHeader(),
+            BookGrid(books: data, onBookTap: onBookTap),
+          ],
+        ),
+    };
+  }
+}
+
+class _HighlightsHeader extends StatelessWidget {
+  const _HighlightsHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.md),
+        child: Row(
+          children: <Widget>[
+            Icon(
+              Icons.local_fire_department_rounded,
+              size: 20,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              'Em alta hoje',
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
