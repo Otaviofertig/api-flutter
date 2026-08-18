@@ -74,6 +74,12 @@ flutter build web --release
 # sirva a pasta build/web com qualquer servidor estático
 ```
 
+**O build de release registra um service worker, e ele serve o build anterior.**
+Depois de recompilar, o navegador continua entregando a versão velha — inclusive
+o `.env` embutido como asset, o que faz uma chave recém-configurada parecer
+ignorada. Um `F5` não resolve; é preciso `Ctrl+Shift+R`, ou
+**DevTools → Application → Service Workers → Unregister**.
+
 ---
 
 ## Habilitando o login (Firebase)
@@ -92,7 +98,16 @@ No [Console do Firebase](https://console.firebase.google.com/):
 
 ### 2. Copiar as chaves para o `.env`
 
-O console mostra um bloco `firebaseConfig`. O mapeamento é:
+O console mostra um bloco `firebaseConfig`. Quem tiver o Firebase CLI autenticado
+pode pular a navegação e pedir a config direto:
+
+```bash
+firebase login
+firebase apps:list --project <seu-projeto>
+firebase apps:sdkconfig WEB <app-id> --project <seu-projeto>
+```
+
+O mapeamento é:
 
 | No console | No `.env` | Obrigatório |
 | --- | --- | --- |
@@ -111,13 +126,33 @@ console de debug diz exatamente o que faltou:
 [Libria] Firebase desativado: faltam FIREBASE_API_KEY, ... no .env.
 ```
 
-### 3. Habilitar os provedores
+### 3. Ativar o Authentication
+
+**Este passo é separado de registrar o app, e é o que mais se esquece.** Ter as
+chaves no `.env` não liga o produto: o Firebase inicializa sem erro, a tela de
+login aparece, e todo login falha.
+
+Em **Criação → Authentication**, se aparecer a tela de apresentação com o botão
+**Começar**, o produto nunca foi ativado. Clique nele.
+
+O app diagnostica esse estado sozinho — o SDK devolve o código
+`configuration-not-found` com a mensagem crua `"Error"`, e o
+`FirebaseAuthDataSource` traduz para:
+
+```
+O Authentication não está ativado neste projeto Firebase.
+Ative em Authentication > Começar, no console.
+```
+
+### 4. Habilitar os provedores
 
 **Authentication → Sign-in method** → ativar **E-mail/senha** e **Google**. O
 provedor Google pede um e-mail de suporte do projeto.
 
-Em **Authentication → Settings → Authorized domains**, confirme que `localhost`
-está na lista — é o que libera o popup de login rodando local.
+Confirme também que `localhost` está na lista de **domínios autorizados** — a
+localização dessa lista varia com a versão do console, normalmente em
+**Authentication → Settings**. É o que libera o popup de login rodando local:
+sem ela o login por e-mail funciona e o Google quebra.
 
 ### Mais de uma plataforma no mesmo `.env`
 
@@ -351,6 +386,22 @@ git add --renormalize windows/
 **`flutter run -d web-server` trava na segunda aba.** Em modo debug o servidor
 vincula o bootstrap ao primeiro cliente. Use `flutter build web --release` com um
 servidor estático quando precisar abrir mais de uma sessão.
+
+**Com o Firebase configurado, a primeira carga fica alguns segundos em branco.** O
+`main()` só chama `runApp` depois que o `initializeApp` resolve, e na web isso
+depende de baixar `firebase-app.js` e `firebase-auth.js` do `gstatic.com`. Não há
+timeout nesse caminho: com o `gstatic` lento ou bloqueado o app não pinta nada —
+nem splash, nem mensagem. Medido com cache limpo, foram mais de 5 segundos de tela
+branca. Sem Firebase configurado o problema não existe, porque o bootstrap retorna
+imediatamente.
+
+**A vitrine da Home costuma não aparecer no primeiro acesso.** O
+`/trending/daily.json` responde em menos de 1 s com a conexão quente, mas a
+primeira chamada mede de 3 s a 11 s — e já foi observada estourando os 20 s de
+`REQUEST_TIMEOUT_SECONDS`. Quando isso acontece a Home cai no convite vazio sem
+avisar que algo falhou, porque o estado da vitrine é separado do da busca de
+propósito (uma falha ali não pode contaminar a busca). O efeito colateral é que
+quem abre o app pela primeira vez tende a nunca ver a vitrine.
 
 **Login Google funciona em debug e falha em release no Android.** Falta cadastrar o
 SHA-1 do keystore de release no console.
